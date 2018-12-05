@@ -35,13 +35,15 @@ func (f Forwarder) Forward(bindingId string, message []byte) error {
 		return fmt.Errorf("binding id '%s' not found", bindingId)
 	}
 
+	org, space, app := f.parser.ParseHostFromMessage(message)
+
 	pLabels := prometheus.Labels{
 		"instance_id": logData.InstanceParam.InstanceID,
 		"binding_id":  logData.BindingID,
 		"plan_name":   logData.InstanceParam.SyslogName,
-		"org_id":      logData.InstanceParam.OrgID,
-		"space_id":    logData.InstanceParam.SpaceID,
-		"app_id":      logData.AppID,
+		"org":         org,
+		"space":       space,
+		"app":         app,
 	}
 	timer := prometheus.NewTimer(logsSentDuration.With(pLabels))
 	defer timer.ObserveDuration()
@@ -74,8 +76,6 @@ func (f Forwarder) Forward(bindingId string, message []byte) error {
 		logsSentFailure.With(pLabels).Inc()
 		return err
 	}
-
-	org, space, app := f.parser.ParseHost(pMes)
 
 	logrus.
 		WithField("binding_id", bindingId).

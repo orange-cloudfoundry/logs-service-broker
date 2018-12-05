@@ -14,7 +14,6 @@ import (
 const defCompanyId = "logsbroker@1368"
 
 type Parser struct {
-	p5424   *rfc5424.Parser
 	filters []Filter
 }
 
@@ -35,7 +34,6 @@ func NewParser() *Parser {
 	grokParser.AddPatternsFromMap(patterns)
 	grokParser.AddPatternsFromMap(programPatternsToGrokPattern())
 	return &Parser{
-		p5424: rfc5424.NewParser(),
 		filters: []Filter{
 			&DefaultFilter{grokParser},
 			&RtrFilter{grokParser},
@@ -45,7 +43,8 @@ func NewParser() *Parser {
 }
 
 func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...string) (*rfc5424.SyslogMessage, error) {
-	pMes, err := p.p5424.Parse(message, nil)
+	p5424 := rfc5424.NewParser()
+	pMes, err := p5424.Parse(message, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -122,4 +121,14 @@ func (p Parser) ParseHost(pmes *rfc5424.SyslogMessage) (org, space, app string) 
 		return s[0], s[1], ""
 	}
 	return s[0], s[1], strings.Join(s[2:], ".")
+}
+
+func (p Parser) ParseHostFromMessage(message []byte) (org, space, app string) {
+	p5424 := rfc5424.NewParser()
+	pMes, err := p5424.Parse(message, nil)
+	if err != nil {
+		return "", "", ""
+	}
+
+	return p.ParseHost(pMes)
 }
