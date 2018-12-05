@@ -81,13 +81,13 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details b
 	return brokerapi.ProvisionedServiceSpec{}, nil
 }
 
-func (b LoghostBroker) foundSyslogWriter(planID string) (model.SyslogAddress, error) {
+func (b LoghostBroker) foundSyslogWriter(planIDOrName string) (model.SyslogAddress, error) {
 	for _, addr := range b.config.SyslogAddresses {
-		if addr.ID == planID {
+		if addr.ID == planIDOrName || addr.Name == planIDOrName {
 			return addr, nil
 		}
 	}
-	return model.SyslogAddress{}, fmt.Errorf("Cannot found syslog writer for plan id '%s'.", planID)
+	return model.SyslogAddress{}, fmt.Errorf("Cannot found syslog writer for plan id or name '%s'.", planIDOrName)
 }
 
 func (b LoghostBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
@@ -113,12 +113,18 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 		appGuid = details.AppGUID
 	}
 
+	syslogAddr, err := b.foundSyslogWriter(instanceParam.SyslogName)
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
+
 	b.db.Create(&model.LogMetadata{
-		BindingID:  bindingID,
-		InstanceID: instanceID,
-		AppID:      appGuid,
-		Patterns:   createPatterns(params.Patterns),
-		Tags:       model.MapToTags(params.Tags),
+		BindingID:    bindingID,
+		InstanceID:   instanceID,
+		AppID:        appGuid,
+		Patterns:     createPatterns(params.Patterns),
+		Tags:         model.MapToTags(params.Tags),
+		SourceLabels: model.MapToTags(syslogAddr.SourceLabels),
 	})
 	url, _ := url.Parse(b.config.SyslogDrainURL)
 	if b.config.VirtualHost {

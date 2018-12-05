@@ -59,12 +59,16 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 	if cId == "" {
 		cId = defCompanyId
 	}
-	tags := model.Tags(logData.InstanceParam.Tags).ToMap()
-	for k, v := range model.Tags(logData.Tags).ToMap() {
+	tags := model.Labels(logData.InstanceParam.Tags).ToMap()
+	for k, v := range model.Labels(logData.Tags).ToMap() {
 		tags[k] = v
 	}
 
 	data := make(map[string]interface{})
+
+	if len(logData.SourceLabels) > 0 {
+		data["@source"] = model.Labels(logData.SourceLabels).ToMap()
+	}
 
 	tags, err = tpl.NewTemplater(TemplateData{
 		Org:       org,

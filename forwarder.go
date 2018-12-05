@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type Forwarder struct {
@@ -44,11 +43,8 @@ func (f Forwarder) Forward(bindingId string, message []byte) error {
 		"space_id":    logData.InstanceParam.SpaceID,
 		"app_id":      logData.AppID,
 	}
-	start := time.Now()
-	defer func() {
-		elapsed := time.Since(start)
-		logsSentDuration.With(pLabels).Observe(elapsed.Seconds())
-	}()
+	timer := prometheus.NewTimer(logsSentDuration.With(pLabels))
+	defer timer.ObserveDuration()
 
 	patterns := make([]string, 0)
 	if len(logData.InstanceParam.Patterns) > 0 {

@@ -77,7 +77,7 @@ func boot() error {
 	db := retrieveGormDb(config)
 	defer db.Close()
 
-	db.AutoMigrate(&model.LogMetadata{}, &model.InstanceParam{}, &model.Patterns{}, &model.Tag{})
+	db.AutoMigrate(&model.LogMetadata{}, &model.InstanceParam{}, &model.Patterns{}, &model.Label{})
 
 	sw, err := CreateWriters(config.SyslogAddresses)
 	if err != nil {
@@ -125,7 +125,7 @@ func boot() error {
 	if port == 0 {
 		port = 8089
 	}
-	if (config.SSLCertFile != "") || (config.SSLKeyFile != "") {
+	if (config.SSLCertFile != "") && (config.SSLKeyFile != "") {
 		log.Debugf("serving https on %s", fmt.Sprintf(":%d", port))
 		return http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCertFile, config.SSLKeyFile, r)
 	}

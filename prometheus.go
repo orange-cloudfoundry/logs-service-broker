@@ -19,8 +19,8 @@ var (
 		},
 		[]string{"instance_id", "binding_id", "plan_name", "org_id", "space_id", "app_id"},
 	)
-	logsSentDuration = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
+	logsSentDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
 			Name: "logs_sent_duration",
 			Help: "Summary of logs sent duration.",
 		},
@@ -32,12 +32,4 @@ func init() {
 	prometheus.MustRegister(logsSentFailure)
 	prometheus.MustRegister(logsSent)
 	prometheus.MustRegister(logsSentDuration)
-	logsSentFailure.With(prometheus.Labels{
-		"instance_id": "test",
-		"binding_id":  "test",
-		"plan_name":   "test",
-		"org_id":      "test",
-		"space_id":    "test",
-		"app_id":      "test",
-	}).Inc()
 }
