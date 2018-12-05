@@ -32,4 +32,12 @@ func init() {
 	prometheus.MustRegister(logsSentFailure)
 	prometheus.MustRegister(logsSent)
 	prometheus.MustRegister(logsSentDuration)
+	logsSentFailure.With(prometheus.Labels{
+		"instance_id": "test",
+		"binding_id":  "test",
+		"plan_name":   "test",
+		"org_id":      "test",
+		"space_id":    "test",
+		"app_id":      "test",
+	}).Inc()
 }

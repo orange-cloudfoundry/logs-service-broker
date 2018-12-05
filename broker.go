@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/gorm"
-	"github.com/pivotal-cf/brokerapi"
-
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
+	"github.com/pivotal-cf/brokerapi"
+	"net/url"
 )
 
 type LoghostBroker struct {
@@ -120,13 +120,14 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 		Patterns:   createPatterns(params.Patterns),
 		Tags:       model.MapToTags(params.Tags),
 	})
+	url, _ := url.Parse(b.config.SyslogDrainURL)
 	if b.config.VirtualHost {
 		return brokerapi.Binding{
-			SyslogDrainURL: fmt.Sprintf("https://%s.%s", bindingID, b.config.Domain),
+			SyslogDrainURL: fmt.Sprintf("%s://%s.%s", url.Scheme, bindingID, url.Host),
 		}, nil
 	}
 	return brokerapi.Binding{
-		SyslogDrainURL: fmt.Sprintf("https://%s/%s", b.config.Domain, bindingID),
+		SyslogDrainURL: fmt.Sprintf("%s://%s/%s", url.Scheme, url.Host, bindingID),
 	}, nil
 }
 

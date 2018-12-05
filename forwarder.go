@@ -35,6 +35,7 @@ func (f Forwarder) Forward(bindingId string, message []byte) error {
 	if logData.BindingID == "" {
 		return fmt.Errorf("binding id '%s' not found", bindingId)
 	}
+
 	pLabels := prometheus.Labels{
 		"instance_id": logData.InstanceParam.InstanceID,
 		"binding_id":  logData.BindingID,

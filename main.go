@@ -15,8 +15,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 func init() {
@@ -29,14 +31,28 @@ func main() {
 	panic(boot())
 }
 
-func retrieveGormDb(sqlitePath string) *gorm.DB {
+func retrieveGormDb(config model.Config) *gorm.DB {
 	var db *gorm.DB
 	err := gautocloud.Inject(&db)
 	if err == nil {
+		if config.SQLCnxMaxOpen != 0 {
+			db.DB().SetMaxOpenConns(config.SQLCnxMaxOpen)
+		}
+		if config.SQLCnxMaxIdle != 0 {
+			db.DB().SetMaxOpenConns(config.SQLCnxMaxIdle)
+		}
+		if config.SQLCnxMaxLife != "" {
+			duration, err := time.ParseDuration(config.SQLCnxMaxLife)
+			if err != nil {
+				log.Warnf("Invalid configuration for SQLCnxMaxLife : %s", err.Error())
+			} else {
+				db.DB().SetConnMaxLifetime(duration)
+			}
+		}
 		return db
 	}
 	log.Warnf("Error when loading database, switching to sqlite, see message: %s", err.Error())
-	db, _ = gorm.Open("sqlite3", sqlitePath)
+	db, _ = gorm.Open("sqlite3", config.SQLitePath)
 	return db
 }
 
@@ -58,7 +74,7 @@ func boot() error {
 
 	loadLogConfig(config)
 
-	db := retrieveGormDb(config.SqlitePath)
+	db := retrieveGormDb(config)
 	defer db.Close()
 
 	db.AutoMigrate(&model.LogMetadata{}, &model.InstanceParam{}, &model.Patterns{}, &model.Tag{})
@@ -90,25 +106,36 @@ func boot() error {
 	r.Handle("/metrics", promhttp.Handler())
 
 	if config.VirtualHost {
+		url, err := url.Parse(config.SyslogDrainURL)
+		if err != nil {
+			log.Errorf("unable to parse provided syslog_drain_url '%s' : %s", config.SyslogDrainURL)
+			return err
+		}
 		r.NewRoute().MatcherFunc(func(req *http.Request, m *mux.RouteMatch) bool {
-			if !strings.HasSuffix(req.Host, config.Domain) {
+			if !strings.HasSuffix(req.Host, url.Hostname()) {
 				return false
 			}
-			return strings.TrimSuffix(req.Host, config.Domain) != ""
+			return strings.TrimSuffix(req.Host, url.Hostname()) != ""
 		}).Handler(http.HandlerFunc(f.ForwardHandler))
 	}
 
 	r.HandleFunc("/{bindingId}", f.ForwardHandler)
+
 	port := gautocloud.GetAppInfo().Port
 	if port == 0 {
 		port = 8089
 	}
+	if (config.SSLCertFile != "") || (config.SSLKeyFile != "") {
+		log.Debugf("serving https on %s", fmt.Sprintf(":%d", port))
+		return http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCertFile, config.SSLKeyFile, r)
+	}
+	log.Debugf("serving http on %s", fmt.Sprintf(":%d", port))
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), r)
 }
 
 func loadLogConfig(c model.Config) {
-	if c.LogJson != nil {
-		if *c.LogJson {
+	if c.LogJSON != nil {
+		if *c.LogJSON {
 			log.SetFormatter(&log.JSONFormatter{})
 		} else {
 			log.SetFormatter(&log.TextFormatter{
