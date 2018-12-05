@@ -66,10 +66,6 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 
 	data := make(map[string]interface{})
 
-	if len(logData.SourceLabels) > 0 {
-		data["@source"] = model.Labels(logData.SourceLabels).ToMap()
-	}
-
 	tags, err = tpl.NewTemplater(TemplateData{
 		Org:       org,
 		OrgID:     logData.InstanceParam.OrgID,
@@ -107,6 +103,9 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 			values = filter.Filter(pMes)
 		}
 		data = utils.MergeMap(data, values)
+	}
+	if len(logData.SourceLabels) > 0 {
+		data["@source"] = model.Labels(logData.SourceLabels).ToMap()
 	}
 	b, _ := json.Marshal(data)
 	pMes.SetMessage(string(b) + "\n")
