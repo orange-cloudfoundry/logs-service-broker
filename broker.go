@@ -77,7 +77,6 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details b
 		Tags:       model.MapToTags(tags),
 		CompanyID:  syslogAddr.CompanyID,
 	})
-
 	return brokerapi.ProvisionedServiceSpec{}, nil
 }
 
@@ -126,6 +125,7 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 		Tags:         model.MapToTags(params.Tags),
 		SourceLabels: model.MapToTags(syslogAddr.SourceLabels),
 	})
+
 	url, _ := url.Parse(b.config.SyslogDrainURL)
 	if b.config.VirtualHost {
 		return brokerapi.Binding{
