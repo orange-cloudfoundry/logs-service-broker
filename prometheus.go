@@ -21,8 +21,9 @@ var (
 	)
 	logsSentDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "logs_sent_duration",
-			Help: "Summary of logs sent duration.",
+			Name:    "logs_sent_duration",
+			Help:    "Summary of logs sent duration.",
+			Buckets: []float64{0.005, 0.01, 0.1, 0.25, 0.5, 1},
 		},
 		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
 	)
