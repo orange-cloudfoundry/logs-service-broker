@@ -51,6 +51,9 @@ func retrieveGormDb(config model.Config) *gorm.DB {
 		}
 		return db
 	}
+	if !config.FallbackToSqlite {
+		log.Fatalf("Error when loading database: %s", err.Error())
+	}
 	log.Warnf("Error when loading database, switching to sqlite, see message: %s", err.Error())
 	db, _ = gorm.Open("sqlite3", config.SQLitePath)
 	return db
