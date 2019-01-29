@@ -68,7 +68,7 @@ func (f RtrFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
 	)
 
 	data["@level"] = "INFO"
-	if values["status"].(int) == 400 {
+	if values["status"].(int) >= 400 {
 		data["@level"] = "ERROR"
 	}
 	return data
