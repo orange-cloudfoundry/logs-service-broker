@@ -17,21 +17,22 @@ const (
 )
 
 type Config struct {
-	SyslogAddresses  []SyslogAddress `cloud:"syslog_addresses"`
-	BrokerUsername   string          `cloud:"broker_username"`
-	BrokerPassword   string          `cloud:"broker_password"`
-	SyslogDrainURL   string          `cloud:"syslog_drain_url"`
-	VirtualHost      bool            `cloud:"virtual_host"`
-	LogLevel         string          `cloud:"log_level"`
-	LogJSON          *bool           `cloud:"log_json"`
-	LogNoColor       bool            `cloud:"log_no_color"`
-	FallbackToSqlite bool            `cloud:"fallback_to_sqlite"`
-	SSLCertFile      string          `cloud:"ssl_cert_file" cloud-default:""`
-	SSLKeyFile       string          `cloud:"ssl_key_file" cloud-default:""`
-	SQLitePath       string          `cloud:"sqlite_path" cloud-default:"loghostsvc.db"`
-	SQLCnxMaxIdle    int             `cloud:"sql_cnx_max_idle" cloud-default:"20"`
-	SQLCnxMaxOpen    int             `cloud:"sql_cnx_max_open" cloud-default:"100"`
-	SQLCnxMaxLife    string          `cloud:"sql_cnx_max_life" cloud-default:"1h"`
+	SyslogAddresses       []SyslogAddress `cloud:"syslog_addresses"`
+	BrokerUsername        string          `cloud:"broker_username"`
+	BrokerPassword        string          `cloud:"broker_password"`
+	SyslogDrainURL        string          `cloud:"syslog_drain_url"`
+	VirtualHost           bool            `cloud:"virtual_host"`
+	LogLevel              string          `cloud:"log_level"`
+	LogJSON               *bool           `cloud:"log_json"`
+	LogNoColor            bool            `cloud:"log_no_color"`
+	FallbackToSqlite      bool            `cloud:"fallback_to_sqlite"`
+	SSLCertFile           string          `cloud:"ssl_cert_file" cloud-default:""`
+	SSLKeyFile            string          `cloud:"ssl_key_file" cloud-default:""`
+	SQLitePath            string          `cloud:"sqlite_path" cloud-default:"loghostsvc.db"`
+	SQLCnxMaxIdle         int             `cloud:"sql_cnx_max_idle" cloud-default:"20"`
+	SQLCnxMaxOpen         int             `cloud:"sql_cnx_max_open" cloud-default:"100"`
+	SQLCnxMaxLife         string          `cloud:"sql_cnx_max_life" cloud-default:"1h"`
+	NotExitWhenConnFailed bool            `cloud:"not_exit_when_con_failed"`
 }
 
 type SyslogAddresses []SyslogAddress

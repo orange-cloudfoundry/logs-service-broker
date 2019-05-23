@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/o1egl/gormrus"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/syslog"
 	"github.com/pivotal-cf/brokerapi"
@@ -80,6 +81,10 @@ func boot() error {
 	db := retrieveGormDb(config)
 	defer db.Close()
 
+	db.SetLogger(gormrus.New())
+	if log.GetLevel() == log.DebugLevel {
+		db.LogMode(true)
+	}
 	db.AutoMigrate(&model.LogMetadata{}, &model.InstanceParam{}, &model.Patterns{}, &model.Label{})
 
 	sw, err := CreateWriters(config.SyslogAddresses)
@@ -124,6 +129,10 @@ func boot() error {
 
 	r.HandleFunc("/{bindingId}", f.ForwardHandler)
 
+	if !config.NotExitWhenConnFailed {
+		go checkDbConnection(db)
+	}
+
 	port := gautocloud.GetAppInfo().Port
 	if port == 0 {
 		port = 8089
@@ -134,6 +143,17 @@ func boot() error {
 	}
 	log.Debugf("serving http on %s", fmt.Sprintf(":%d", port))
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), r)
+}
+
+func checkDbConnection(db *gorm.DB) {
+	for {
+		err := db.DB().Ping()
+		if err != nil {
+			db.Close()
+			log.Fatalf("Error when pinging database: %s", err.Error())
+		}
+		time.Sleep(5 * time.Minute)
+	}
 }
 
 func loadLogConfig(c model.Config) {

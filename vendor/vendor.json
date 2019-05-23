@@ -349,6 +349,12 @@
 			"revisionTime": "2018-05-16T07:51:36Z"
 		},
 		{
+			"checksumSHA1": "Ugg3x+7Olumvuafwo/V+gfT6hdw=",
+			"path": "github.com/o1egl/gormrus",
+			"revision": "fde1f6a23457f4e196f8d18a9bc45c491320384f",
+			"revisionTime": "2019-04-16T21:13:02Z"
+		},
+		{
 			"checksumSHA1": "8Y05Pz7onrQPcVWW6JStSsYRh6E=",
 			"origin": "github.com/cloudfoundry-community/gautocloud/vendor/github.com/pelletier/go-buffruneio",
 			"path": "github.com/pelletier/go-buffruneio",
