@@ -58,7 +58,7 @@ func (f *AppFilter) filterJson(pMes *rfc5424.SyslogMessage) map[string]interface
 		data["@exception"] = err.Error()
 		return data
 	}
-	return map[string]interface{}{"@app": data}
+	return map[string]interface{}{"app": data}
 }
 
 func (f *AppFilter) Match(pMes *rfc5424.SyslogMessage) bool {

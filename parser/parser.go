@@ -104,7 +104,17 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 		data = utils.MergeMap(data, values)
 	}
 	if len(logData.SourceLabels) > 0 {
-		data["@source"] = model.Labels(logData.SourceLabels).ToMap()
+		currentSource := make(map[string]interface{})
+		if _, ok := data["@source"]; ok {
+			if dataMap, ok := data["@source"].(map[string]interface{}); ok {
+				currentSource = dataMap
+			}
+		}
+		sourceLabelMap := make(map[string]interface{})
+		for k, v := range model.Labels(logData.SourceLabels).ToMap() {
+			sourceLabelMap[k] = v
+		}
+		data["@source"] = utils.MergeMap(sourceLabelMap, currentSource)
 	}
 	b, _ := json.Marshal(data)
 	pMes.SetMessage(string(b) + "\n")

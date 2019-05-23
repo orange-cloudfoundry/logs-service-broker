@@ -30,11 +30,11 @@ var patterns = map[string]string{
 }
 
 var programPatterns = []string{
-	`%{TIME} \|\-%{LOGLEVEL:@level} in %{NOTSPACE:[@app][logger]} - %{GREEDYDATA:@message}`,
+	`%{TIME} \|\-%{LOGLEVEL:@level} in %{NOTSPACE:[app][logger]} - %{GREEDYDATA:@message}`,
 	`\[CONTAINER\]%{SPACE}%{NOTSPACE}%{SPACE}%{LOGLEVEL:@level}%{SPACE}%{GREEDYDATA:@message}`,
-	`%{TIME} %{NOTSPACE:[@app][program]}%{SPACE}\|%{SPACE}%{HOSTNAME:[@app][hostname]} - - \[%{HTTPDATE:[@app][timestamp]}\] "%{WORD:[@app][verb]} %{URIPATHPARAM:[@app][path]} %{PROG:[@app][http_spec]}" %{BASE10NUM:[@app][status]:int} %{BASE10NUM:[@app][request_bytes_received]:int} vcap_request_id=%{NOTSPACE:@request_id} %{GREEDYDATA:@message}`,
-	`%{TIME} %{NOTSPACE:[@app][program]}%{SPACE}\|%{SPACE}\[%{DATESTAMP_ALT:[@app][timestamp]}\] \[(core|mpm_event):%{WORD:@level}\] %{GREEDYDATA:@message}`,
-	`%{TIME} %{NOTSPACE:[@app][program]}%{SPACE}\|%{SPACE}\[%{DATESTAMP_TXT:[@app][timestamp]}\] %{LOGLEVEL:@level}: %{GREEDYDATA:@message}`,
+	`%{TIME} %{NOTSPACE:[app][program]}%{SPACE}\|%{SPACE}%{HOSTNAME:[app][hostname]} - - \[%{HTTPDATE:[app][timestamp]}\] "%{WORD:[app][verb]} %{URIPATHPARAM:[app][path]} %{PROG:[app][http_spec]}" %{BASE10NUM:[app][status]:int} %{BASE10NUM:[app][request_bytes_received]:int} vcap_request_id=%{NOTSPACE:@request_id} %{GREEDYDATA:@message}`,
+	`%{TIME} %{NOTSPACE:[app][program]}%{SPACE}\|%{SPACE}\[%{DATESTAMP_ALT:[app][timestamp]}\] \[(core|mpm_event):%{WORD:@level}\] %{GREEDYDATA:@message}`,
+	`%{TIME} %{NOTSPACE:[app][program]}%{SPACE}\|%{SPACE}\[%{DATESTAMP_TXT:[app][timestamp]}\] %{LOGLEVEL:@level}: %{GREEDYDATA:@message}`,
 }
 
 func programPatternsToGrokPattern() map[string]string {
