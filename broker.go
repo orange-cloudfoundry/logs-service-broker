@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"net/url"
 )
+
+const serviceId = "11c147f0-297f-4fd6-9401-e94e64f37094"
 
 type LoghostBroker struct {
 	db     *gorm.DB
@@ -22,16 +24,16 @@ func NewLoghostBroker(db *gorm.DB, config model.Config) *LoghostBroker {
 	}
 }
 
-func (b LoghostBroker) Services(ctx context.Context) ([]brokerapi.Service, error) {
+func (b LoghostBroker) Services(ctx context.Context) ([]domain.Service, error) {
 
-	return []brokerapi.Service{{
-		ID:          "11c147f0-297f-4fd6-9401-e94e64f37094",
+	return []domain.Service{{
+		ID:          serviceId,
 		Name:        "logs",
 		Description: "Drain apps logs to a or multiple syslog server(s).",
 		Bindable:    true,
-		Requires:    []brokerapi.RequiredPermission{brokerapi.PermissionSyslogDrain},
+		Requires:    []domain.RequiredPermission{domain.PermissionSyslogDrain},
 		Plans:       model.SyslogAddresses(b.config.SyslogAddresses).ToServicePlans(),
-		Metadata: &brokerapi.ServiceMetadata{
+		Metadata: &domain.ServiceMetadata{
 			DisplayName:         "logs",
 			LongDescription:     "Drain apps logs to a or multiple syslog server(s).",
 			DocumentationUrl:    "",
@@ -39,6 +41,8 @@ func (b LoghostBroker) Services(ctx context.Context) ([]brokerapi.Service, error
 			ImageUrl:            "",
 			ProviderDisplayName: "Orange",
 		},
+		InstancesRetrievable: true,
+		BindingsRetrievable:  true,
 		Tags: []string{
 			"syslog",
 			"forward",
@@ -46,10 +50,10 @@ func (b LoghostBroker) Services(ctx context.Context) ([]brokerapi.Service, error
 	}}, nil
 }
 
-func (b LoghostBroker) Provision(_ context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
+func (b LoghostBroker) Provision(_ context.Context, instanceID string, details domain.ProvisionDetails, asyncAllowed bool) (domain.ProvisionedServiceSpec, error) {
 	syslogAddr, err := b.foundSyslogWriter(details.PlanID)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
+		return domain.ProvisionedServiceSpec{}, err
 	}
 
 	var ctx model.ContextProvision
@@ -77,7 +81,7 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details b
 		Tags:       model.MapToTags(tags),
 		CompanyID:  syslogAddr.CompanyID,
 	})
-	return brokerapi.ProvisionedServiceSpec{}, nil
+	return domain.ProvisionedServiceSpec{}, nil
 }
 
 func (b LoghostBroker) foundSyslogWriter(planIDOrName string) (model.SyslogAddress, error) {
@@ -89,12 +93,12 @@ func (b LoghostBroker) foundSyslogWriter(planIDOrName string) (model.SyslogAddre
 	return model.SyslogAddress{}, fmt.Errorf("Cannot found syslog writer for plan id or name '%s'.", planIDOrName)
 }
 
-func (b LoghostBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
+func (b LoghostBroker) Deprovision(ctx context.Context, instanceID string, details domain.DeprovisionDetails, asyncAllowed bool) (domain.DeprovisionServiceSpec, error) {
 	b.db.Delete(model.LogMetadata{}, "instance_id = ?", instanceID)
-	return brokerapi.DeprovisionServiceSpec{}, nil
+	return domain.DeprovisionServiceSpec{}, nil
 }
 
-func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
+func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, details domain.BindDetails, asyncAllowed bool) (domain.Binding, error) {
 	var instanceParam model.InstanceParam
 	var ctx model.ContextBind
 	json.Unmarshal([]byte(details.RawContext), &ctx)
@@ -104,7 +108,7 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 
 	b.db.First(&instanceParam, "instance_id = ?", instanceID)
 	if instanceParam.InstanceID == "" {
-		return brokerapi.Binding{}, fmt.Errorf("instance id '%s' not found", instanceID)
+		return domain.Binding{}, fmt.Errorf("instance id '%s' not found", instanceID)
 	}
 
 	appGuid := ctx.AppGUID
@@ -114,7 +118,7 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 
 	syslogAddr, err := b.foundSyslogWriter(instanceParam.SyslogName)
 	if err != nil {
-		return brokerapi.Binding{}, err
+		return domain.Binding{}, err
 	}
 
 	b.db.Create(&model.LogMetadata{
@@ -128,26 +132,83 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 
 	url, _ := url.Parse(b.config.SyslogDrainURL)
 	if b.config.VirtualHost {
-		return brokerapi.Binding{
+		return domain.Binding{
 			SyslogDrainURL: fmt.Sprintf("%s://%s.%s", url.Scheme, bindingID, url.Host),
 		}, nil
 	}
-	return brokerapi.Binding{
+	return domain.Binding{
 		SyslogDrainURL: fmt.Sprintf("%s://%s/%s", url.Scheme, url.Host, bindingID),
 	}, nil
 }
 
-func (b LoghostBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
+func (b LoghostBroker) Unbind(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, asyncAllowed bool) (domain.UnbindSpec, error) {
 	b.db.Delete(model.LogMetadata{}, "binding_id = ?", bindingID)
-	return nil
+	return domain.UnbindSpec{}, nil
 }
 
-func (LoghostBroker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
-	return brokerapi.UpdateServiceSpec{}, nil
+func (LoghostBroker) Update(ctx context.Context, instanceID string, details domain.UpdateDetails, asyncAllowed bool) (domain.UpdateServiceSpec, error) {
+	return domain.UpdateServiceSpec{}, nil
 }
 
-func (LoghostBroker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
-	return brokerapi.LastOperation{}, nil
+func (LoghostBroker) LastOperation(ctx context.Context, instanceID string, details domain.PollDetails) (domain.LastOperation, error) {
+	return domain.LastOperation{}, nil
+}
+
+func (b LoghostBroker) GetInstance(_ context.Context, instanceID string) (domain.GetInstanceDetailsSpec, error) {
+	var instanceParam model.InstanceParam
+
+	b.db.Set("gorm:auto_preload", true).First(&instanceParam, "instance_id = ?", instanceID)
+	if instanceParam.InstanceID == "" {
+		return domain.GetInstanceDetailsSpec{}, fmt.Errorf("instance id '%s' not found", instanceID)
+	}
+
+	syslogAddr, err := b.foundSyslogWriter(instanceParam.SyslogName)
+	if err != nil {
+		return domain.GetInstanceDetailsSpec{}, err
+	}
+
+	patterns := make([]string, len(instanceParam.Patterns))
+	for i, pattern := range instanceParam.Patterns {
+		patterns[i] = pattern.Pattern
+	}
+	return domain.GetInstanceDetailsSpec{
+		PlanID:    syslogAddr.ID,
+		ServiceID: serviceId,
+		Parameters: model.ProvisionParams{
+			Tags:     model.Labels(instanceParam.Tags).ToMap(),
+			Patterns: patterns,
+		},
+	}, nil
+}
+
+func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID string) (domain.GetBindingSpec, error) {
+	var logData model.LogMetadata
+	b.db.Set("gorm:auto_preload", true).First(&logData, "binding_id = ?", bindingID)
+	if logData.BindingID == "" {
+		return domain.GetBindingSpec{}, fmt.Errorf("binding id '%s' not found", bindingID)
+	}
+
+	urlDrain, _ := url.Parse(b.config.SyslogDrainURL)
+	syslogDrainURl := fmt.Sprintf("%s://%s/%s", urlDrain.Scheme, urlDrain.Host, bindingID)
+	if b.config.VirtualHost {
+		syslogDrainURl = fmt.Sprintf("%s://%s.%s", urlDrain.Scheme, bindingID, urlDrain.Host)
+	}
+
+	patterns := make([]string, len(logData.Patterns))
+	for i, pattern := range logData.Patterns {
+		patterns[i] = pattern.Pattern
+	}
+	return domain.GetBindingSpec{
+		SyslogDrainURL: syslogDrainURl,
+		Parameters: model.ProvisionParams{
+			Tags:     model.Labels(logData.Tags).ToMap(),
+			Patterns: patterns,
+		},
+	}, nil
+}
+
+func (b LoghostBroker) LastBindingOperation(ctx context.Context, instanceID, bindingID string, details domain.PollDetails) (domain.LastOperation, error) {
+	return domain.LastOperation{}, nil
 }
 
 func createPatterns(patternsStr []string) []model.Pattern {

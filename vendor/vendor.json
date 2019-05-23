@@ -363,16 +363,64 @@
 			"revisionTime": "2018-05-16T07:51:36Z"
 		},
 		{
-			"checksumSHA1": "MJUcn+4TlsPXt1wchnmUBLNvibM=",
+			"checksumSHA1": "rA3M26uUJzSa4/Y1jkp8OP28JBs=",
 			"path": "github.com/pivotal-cf/brokerapi",
-			"revision": "d1fcddd951a6776bc01659143dda6aca057e98b7",
-			"revisionTime": "2018-06-12T10:37:30Z"
+			"revision": "8d8c98578aae5f3aca54f6e4968659de0ff4decb",
+			"revisionTime": "2019-05-16T13:00:59Z",
+			"version": "v5.0.0",
+			"versionExact": "v5.0.0"
 		},
 		{
 			"checksumSHA1": "PKEI/UaHe6QEcIHO9jYVTo9QUT8=",
 			"path": "github.com/pivotal-cf/brokerapi/auth",
 			"revision": "d1fcddd951a6776bc01659143dda6aca057e98b7",
 			"revisionTime": "2018-06-12T10:37:30Z"
+		},
+		{
+			"checksumSHA1": "R2oPurJouhgmqkDDAq1me/s/jYo=",
+			"path": "github.com/pivotal-cf/brokerapi/domain",
+			"revision": "8d8c98578aae5f3aca54f6e4968659de0ff4decb",
+			"revisionTime": "2019-05-16T13:00:59Z",
+			"version": "v5.0.0",
+			"versionExact": "v5.0.0"
+		},
+		{
+			"checksumSHA1": "7M6093Pelb9c5vBmc0jclAdXlpE=",
+			"path": "github.com/pivotal-cf/brokerapi/domain/apiresponses",
+			"revision": "8d8c98578aae5f3aca54f6e4968659de0ff4decb",
+			"revisionTime": "2019-05-16T13:00:59Z",
+			"version": "v5.0.0",
+			"versionExact": "v5.0.0"
+		},
+		{
+			"checksumSHA1": "S2F3KIa0kwVrRyaH2OCKsHsJHak=",
+			"path": "github.com/pivotal-cf/brokerapi/handlers",
+			"revision": "8d8c98578aae5f3aca54f6e4968659de0ff4decb",
+			"revisionTime": "2019-05-16T13:00:59Z",
+			"version": "v5.0.0",
+			"versionExact": "v5.0.0"
+		},
+		{
+			"checksumSHA1": "HqfYVw9wv3rXX9Q8HjnXliVD3mE=",
+			"path": "github.com/pivotal-cf/brokerapi/middlewares",
+			"revision": "8d8c98578aae5f3aca54f6e4968659de0ff4decb",
+			"revisionTime": "2019-05-16T13:00:59Z",
+			"version": "v5.0.0",
+			"versionExact": "v5.0.0"
+		},
+		{
+			"checksumSHA1": "9A0yQS6bYp08Kv/Fgw27/vsQyF4=",
+			"path": "github.com/pivotal-cf/brokerapi/utils",
+			"revision": "8d8c98578aae5f3aca54f6e4968659de0ff4decb",
+			"revisionTime": "2019-05-16T13:00:59Z",
+			"version": "v5.0.0",
+			"versionExact": "v5.0.0"
+		},
+		{
+			"checksumSHA1": "I7hloldMJZTqUx6hbVDp5nk9fZQ=",
+			"path": "github.com/pkg/errors",
+			"revision": "27936f6d90f9c8e1145f11ed52ffffbfdb9e0af7",
+			"revisionTime": "2019-02-27T00:00:51Z"
 		},
 		{
 			"checksumSHA1": "jN66lrLtNTo3Qe6+WtCbNcvznAo=",
