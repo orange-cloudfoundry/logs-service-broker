@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/influxdata/go-syslog/rfc5424"
+	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 	"github.com/vjeantet/grok"
 	"regexp"
 )
@@ -12,29 +13,53 @@ type AppFilter struct {
 	g *grok.Grok
 }
 
+var regexJson = regexp.MustCompile(`^\s*{".*}\s*$`)
+
 func (f *AppFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
-	if regexp.MustCompile(`^\s*{".*}\s*$`).MatchString(*pMes.Message()) {
-		return f.filterJson(pMes)
+	if regexJson.MatchString(*pMes.Message()) {
+		return f.filterJson(*pMes.Message())
 	}
-	for i, _ := range programPatterns {
+	return f.filterProgramPattern(*pMes.Message())
+}
+
+func (f *AppFilter) parseJsonMapValue(m map[string]interface{}) map[string]interface{} {
+	if msgJson, ok := m["@json"]; ok {
+		m = utils.MergeMap(m, f.filterJson(fmt.Sprint(msgJson)))
+		delete(m, "@json")
+	}
+	if msg, ok := m["@message"]; ok && regexJson.MatchString(fmt.Sprint(msg)) {
+		m = utils.MergeMap(m, f.filterJson(fmt.Sprint(msg)))
+		delete(m, "@message")
+	}
+	return m
+}
+
+func (f *AppFilter) filterProgramPattern(message string) map[string]interface{} {
+	resultMap := make(map[string]interface{})
+	for i := range programPatterns {
 		values, _ := f.g.ParseTyped(
 			"%{"+fmt.Sprintf("PG%d", i)+"}",
-			*pMes.Message(),
+			message,
 		)
 		if len(values) == 0 {
 			continue
 		}
-		return Mapper(values)
+		resultMap = Mapper(values)
+		break
 	}
-	return map[string]interface{}{
-		"@message": *pMes.Message(),
+	if len(resultMap) == 0 {
+		return map[string]interface{}{
+			"@message": message,
+		}
 	}
+	return f.parseJsonMapValue(resultMap)
 }
 
 func (f *AppFilter) FilterPatterns(pMes *rfc5424.SyslogMessage, patterns []string) map[string]interface{} {
-	if regexp.MustCompile(`^\s*{".*}\s*$`).MatchString(*pMes.Message()) {
-		return f.filterJson(pMes)
+	if regexJson.MatchString(*pMes.Message()) {
+		return f.filterJson(*pMes.Message())
 	}
+	resultMap := make(map[string]interface{})
 	for _, pattern := range patterns {
 		values, _ := f.g.ParseTyped(
 			pattern,
@@ -43,18 +68,21 @@ func (f *AppFilter) FilterPatterns(pMes *rfc5424.SyslogMessage, patterns []strin
 		if len(values) == 0 {
 			continue
 		}
-		return Mapper(values)
+		resultMap = Mapper(values)
+		break
 	}
-	return map[string]interface{}{
-		"@message": *pMes.Message(),
+	if len(resultMap) == 0 {
+		return f.filterProgramPattern(*pMes.Message())
 	}
+
+	return f.parseJsonMapValue(resultMap)
 }
 
-func (f *AppFilter) filterJson(pMes *rfc5424.SyslogMessage) map[string]interface{} {
+func (f *AppFilter) filterJson(message string) map[string]interface{} {
 	data := make(map[string]interface{})
-	err := json.Unmarshal([]byte(*pMes.Message()), &data)
+	err := json.Unmarshal([]byte(message), &data)
 	if err != nil {
-		data["@message"] = *pMes.Message()
+		data["@message"] = message
 		data["@exception"] = err.Error()
 		return data
 	}

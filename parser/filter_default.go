@@ -28,7 +28,7 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 	}
 	srcType = procSplit[0]
 
-	data["@source"] = map[string]interface{}{"type": strings.ToLower(srcType)}
+	data["@source"] = map[string]interface{}{"type": srcType}
 
 	data["@shipper"] = map[string]interface{}{"name": "log-service", "priority": *pMes.Priority()}
 	data["@input"] = "syslog"

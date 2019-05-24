@@ -146,7 +146,44 @@ func (b LoghostBroker) Unbind(ctx context.Context, instanceID, bindingID string,
 	return domain.UnbindSpec{}, nil
 }
 
-func (LoghostBroker) Update(ctx context.Context, instanceID string, details domain.UpdateDetails, asyncAllowed bool) (domain.UpdateServiceSpec, error) {
+func (b LoghostBroker) Update(_ context.Context, instanceID string, details domain.UpdateDetails, asyncAllowed bool) (domain.UpdateServiceSpec, error) {
+	syslogAddr, err := b.foundSyslogWriter(details.PlanID)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, err
+	}
+
+	var instanceParam model.InstanceParam
+	b.db.First(&instanceParam, "instance_id = ?", instanceID)
+	if instanceParam.InstanceID == "" {
+		return domain.UpdateServiceSpec{}, fmt.Errorf("instance id '%s' not found", instanceID)
+	}
+
+	var ctx model.ContextProvision
+	json.Unmarshal([]byte(details.RawContext), &ctx)
+
+	var params model.ProvisionParams
+	json.Unmarshal(details.RawParameters, &params)
+
+	tags := syslogAddr.Tags
+	if tags == nil {
+		tags = make(map[string]string)
+	}
+
+	for k, v := range params.Tags {
+		tags[k] = v
+	}
+
+	b.db.Update(&model.InstanceParam{
+		InstanceID: instanceID,
+		SpaceID:    instanceParam.SpaceID,
+		OrgID:      instanceParam.OrgID,
+		Namespace:  instanceParam.Namespace,
+		SyslogName: syslogAddr.Name,
+		Patterns:   createPatterns(params.Patterns),
+		Tags:       model.MapToTags(tags),
+		CompanyID:  syslogAddr.CompanyID,
+	})
+
 	return domain.UpdateServiceSpec{}, nil
 }
 
