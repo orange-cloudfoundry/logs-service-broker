@@ -13,7 +13,7 @@ type AppFilter struct {
 	g *grok.Grok
 }
 
-var regexJson = regexp.MustCompile(`^\s*{".*}\s*$`)
+var regexJson = regexp.MustCompile(`^\s*{\s*".*}\s*$`)
 
 func (f *AppFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
 	if regexJson.MatchString(*pMes.Message()) {
@@ -51,6 +51,9 @@ func (f *AppFilter) filterProgramPattern(message string) map[string]interface{} 
 		return map[string]interface{}{
 			"@message": message,
 		}
+	}
+	if appData, ok := resultMap["app"]; ok {
+		resultMap["@app"] = appData
 	}
 	return f.parseJsonMapValue(resultMap)
 }
