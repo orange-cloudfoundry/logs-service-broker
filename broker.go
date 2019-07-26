@@ -153,7 +153,7 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 	}
 
 	var instanceParam model.InstanceParam
-	b.db.First(&instanceParam, "instance_id = ?", instanceID)
+	b.db.Set("gorm:auto_preload", true).First(&instanceParam, "instance_id = ?", instanceID)
 	if instanceParam.InstanceID == "" {
 		return domain.UpdateServiceSpec{}, fmt.Errorf("instance id '%s' not found", instanceID)
 	}
@@ -173,7 +173,10 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 		tags[k] = v
 	}
 
-	b.db.Update(&model.InstanceParam{
+	b.db.Delete(instanceParam.Tags)
+	b.db.Delete(instanceParam.Patterns)
+
+	b.db.Save(&model.InstanceParam{
 		InstanceID: instanceID,
 		SpaceID:    instanceParam.SpaceID,
 		OrgID:      instanceParam.OrgID,
