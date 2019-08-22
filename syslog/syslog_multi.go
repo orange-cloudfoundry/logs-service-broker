@@ -29,6 +29,7 @@ func (t *MultiWriter) Write(b []byte) (int, error) {
 	var result error
 	for _, w := range t.mw {
 		go func() {
+			defer wg.Done()
 			_, err := w.Write(b)
 			if err != nil {
 				mutex.Lock()
