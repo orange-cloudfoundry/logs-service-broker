@@ -29,6 +29,9 @@ func NewForwarder(db *gorm.DB, writers map[string]io.WriteCloser) *Forwarder {
 }
 
 func (f Forwarder) Forward(bindingId string, message []byte) error {
+	if len(message) == 0 {
+		return nil
+	}
 	var logData model.LogMetadata
 	f.db.Set("gorm:auto_preload", true).First(&logData, "binding_id = ?", bindingId)
 	if logData.BindingID == "" {
