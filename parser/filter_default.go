@@ -27,9 +27,18 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 		index = 0
 	}
 	srcType = procSplit[0]
-
-	data["@source"] = map[string]interface{}{"type": srcType}
-
+	details := ""
+	isCfTask := false
+	if len(procSplit) > 2 {
+		details = strings.Join(procSplit[1:len(procSplit)-1], "/")
+		if strings.ToUpper(procSplit[1]) == "TASK" {
+			isCfTask = true
+		}
+	}
+	data["@source"] = map[string]interface{}{
+		"type":    srcType,
+		"details": details,
+	}
 	data["@shipper"] = map[string]interface{}{"name": "log-service", "priority": *pMes.Priority()}
 	data["@input"] = "syslog"
 	data["@type"] = "LogMessage"
@@ -44,8 +53,7 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 		break
 	}
 	mesData := pData[cId]
-
-	data["@cf"] = map[string]interface{}{
+	cfData := map[string]interface{}{
 		"app":          mesData["app_name"],
 		"app_id":       mesData["app_id"],
 		"app_instance": index,
@@ -54,6 +62,12 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 		"space":        mesData["space"],
 		"space_id":     mesData["space_id"],
 	}
+	if isCfTask {
+		delete(cfData, "app_instance")
+		cfData["task_id"] = index
+		cfData["task_name"] = procSplit[2]
+	}
+	data["@cf"] = cfData
 
 	return data
 }

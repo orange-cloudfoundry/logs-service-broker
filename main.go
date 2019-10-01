@@ -96,9 +96,14 @@ func boot() error {
 			w.Close()
 		}
 	}()
+	c, err := NewMetaCacher(db, config.CacheDuration)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go c.Cleaner()
 
-	f := NewForwarder(db, sw)
-	broker := NewLoghostBroker(db, config)
+	f := NewForwarder(c, sw)
+	broker := NewLoghostBroker(db, c, config)
 
 	lag := lager.NewLogger("broker")
 	lag.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))

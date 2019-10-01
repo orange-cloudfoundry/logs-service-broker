@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/parser"
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,31 +10,31 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
 type Forwarder struct {
 	sw     map[string]io.WriteCloser
-	db     *gorm.DB
+	cacher *MetaCacher
 	parser *parser.Parser
 }
 
-func NewForwarder(db *gorm.DB, writers map[string]io.WriteCloser) *Forwarder {
+func NewForwarder(cacher *MetaCacher, writers map[string]io.WriteCloser) *Forwarder {
 	return &Forwarder{
 		sw:     writers,
-		db:     db,
+		cacher: cacher,
 		parser: parser.NewParser(),
 	}
 }
 
-func (f Forwarder) Forward(bindingId string, message []byte) error {
+func (f Forwarder) Forward(bindingId string, rev int, message []byte) error {
 	if len(message) == 0 {
 		return nil
 	}
-	var logData model.LogMetadata
-	f.db.Set("gorm:auto_preload", true).First(&logData, "binding_id = ?", bindingId)
-	if logData.BindingID == "" {
-		return fmt.Errorf("binding id '%s' not found", bindingId)
+	logData, err := f.cacher.LogMetadata(bindingId, rev)
+	if err != nil {
+		return err
 	}
 
 	org, space, app := f.parser.ParseHostFromMessage(message)
@@ -108,15 +107,24 @@ func (f Forwarder) foundWriter(writerName string) (io.WriteCloser, error) {
 func (f Forwarder) ForwardHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	v := mux.Vars(r)
-	var bindingId string
 
+	var bindingId string
 	if _, ok := v["bindingId"]; ok {
 		bindingId = v["bindingId"]
 	}
-
 	if bindingId == "" {
 		hSplit := strings.Split(r.Host, ".")
 		bindingId = hSplit[0]
+	}
+
+	rev := 0
+	revStr, revExists := r.URL.Query()[model.RevKey]
+	if revExists {
+		var err error
+		rev, err = strconv.Atoi(revStr[0])
+		if err != nil {
+			logrus.Warnf("Cannot convert rev for binding '%s' using rev 0, error is: %s", bindingId, err.Error())
+		}
 	}
 
 	b, _ := ioutil.ReadAll(r.Body)
@@ -126,7 +134,7 @@ func (f Forwarder) ForwardHandler(w http.ResponseWriter, r *http.Request) {
 				logrus.WithField("binding_id", bindingId).Panic(r)
 			}
 		}()
-		err := f.Forward(bindingId, b)
+		err := f.Forward(bindingId, rev, b)
 		if err != nil {
 			logrus.WithField("binding_id", bindingId).Error(err.Error())
 		}

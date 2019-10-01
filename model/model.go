@@ -14,6 +14,8 @@ func init() {
 const (
 	PlatformCF  = "cloudfoundry"
 	PlatformK8s = "kubernetes"
+
+	RevKey = "rev"
 )
 
 type Config struct {
@@ -32,6 +34,7 @@ type Config struct {
 	SQLCnxMaxIdle         int             `cloud:"sql_cnx_max_idle" cloud-default:"20"`
 	SQLCnxMaxOpen         int             `cloud:"sql_cnx_max_open" cloud-default:"100"`
 	SQLCnxMaxLife         string          `cloud:"sql_cnx_max_life" cloud-default:"1h"`
+	CacheDuration         string          `cloud:"cache_duration" cloud-default:"10m"`
 	NotExitWhenConnFailed bool            `cloud:"not_exit_when_con_failed"`
 }
 
@@ -77,6 +80,7 @@ type InstanceParam struct {
 	CompanyID  string
 	Patterns   []Pattern `gorm:"foreignkey:InstanceID"`
 	Tags       []Label   `gorm:"foreignkey:InstanceID"`
+	Revision   int
 }
 
 func (d *InstanceParam) BeforeDelete(tx *gorm.DB) (err error) {

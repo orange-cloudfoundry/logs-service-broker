@@ -15,12 +15,14 @@ const serviceId = "11c147f0-297f-4fd6-9401-e94e64f37094"
 type LoghostBroker struct {
 	db     *gorm.DB
 	config model.Config
+	cacher *MetaCacher
 }
 
-func NewLoghostBroker(db *gorm.DB, config model.Config) *LoghostBroker {
+func NewLoghostBroker(db *gorm.DB, cacher *MetaCacher, config model.Config) *LoghostBroker {
 	return &LoghostBroker{
 		db:     db,
 		config: config,
+		cacher: cacher,
 	}
 }
 
@@ -80,6 +82,7 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 		Patterns:   createPatterns(params.Patterns),
 		Tags:       model.MapToTags(tags),
 		CompanyID:  syslogAddr.CompanyID,
+		Revision:   0,
 	})
 	return domain.ProvisionedServiceSpec{}, nil
 }
@@ -185,8 +188,8 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 		Patterns:   createPatterns(params.Patterns),
 		Tags:       model.MapToTags(tags),
 		CompanyID:  syslogAddr.CompanyID,
+		Revision:   instanceParam.Revision + 1,
 	})
-
 	return domain.UpdateServiceSpec{}, nil
 }
 
@@ -233,7 +236,7 @@ func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID strin
 	if b.config.VirtualHost {
 		syslogDrainURl = fmt.Sprintf("%s://%s.%s", urlDrain.Scheme, bindingID, urlDrain.Host)
 	}
-
+	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, logData.InstanceParam.Revision)
 	patterns := make([]string, len(logData.Patterns))
 	for i, pattern := range logData.Patterns {
 		patterns[i] = pattern.Pattern
