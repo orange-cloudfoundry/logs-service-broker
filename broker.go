@@ -134,13 +134,14 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	})
 
 	url, _ := url.Parse(b.config.SyslogDrainURL)
+
+	syslogDrainURl := fmt.Sprintf("%s://%s/%s", url.Scheme, url.Host, bindingID)
 	if b.config.VirtualHost {
-		return domain.Binding{
-			SyslogDrainURL: fmt.Sprintf("%s://%s.%s", url.Scheme, bindingID, url.Host),
-		}, nil
+		syslogDrainURl = fmt.Sprintf("%s://%s.%s", url.Scheme, bindingID, url.Host)
 	}
+	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, instanceParam.Revision)
 	return domain.Binding{
-		SyslogDrainURL: fmt.Sprintf("%s://%s/%s", url.Scheme, url.Host, bindingID),
+		SyslogDrainURL: syslogDrainURl,
 	}, nil
 }
 
