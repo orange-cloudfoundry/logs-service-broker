@@ -147,6 +147,7 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 
 func (b LoghostBroker) Unbind(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, asyncAllowed bool) (domain.UnbindSpec, error) {
 	b.db.Delete(model.LogMetadata{}, "binding_id = ?", bindingID)
+	b.cacher.EvictByBindingId(bindingID)
 	return domain.UnbindSpec{}, nil
 }
 
