@@ -147,7 +147,6 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 
 func (b LoghostBroker) Unbind(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, asyncAllowed bool) (domain.UnbindSpec, error) {
 	b.db.Delete(model.LogMetadata{}, "binding_id = ?", bindingID)
-	b.cacher.EvictByBindingId(bindingID)
 	return domain.UnbindSpec{}, nil
 }
 
@@ -178,9 +177,8 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 		tags[k] = v
 	}
 
-	b.db.Delete(instanceParam.Tags)
-	b.db.Delete(instanceParam.Patterns)
-
+	b.db.Delete(model.Label{}, "instance_id = ?", instanceID)
+	b.db.Delete(model.Pattern{}, "instance_id = ?", instanceID)
 	b.db.Save(&model.InstanceParam{
 		InstanceID: instanceID,
 		SpaceID:    instanceParam.SpaceID,
