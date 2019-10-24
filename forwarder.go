@@ -32,30 +32,28 @@ func (f Forwarder) Forward(bindingId string, rev int, message []byte) error {
 	if len(message) == 0 {
 		return nil
 	}
-	logData, err := f.cacher.LogMetadata(bindingId, rev)
-	if err != nil {
-		return err
-	}
-
 	org, space, app := f.parser.ParseHostFromMessage(message)
-
 	pLabels := prometheus.Labels{
-		"instance_id": logData.InstanceParam.InstanceID,
-		"binding_id":  logData.BindingID,
-		"plan_name":   logData.InstanceParam.SyslogName,
+		"instance_id": "",
+		"binding_id":  bindingId,
+		"plan_name":   "",
 		"org":         org,
 		"space":       space,
 		"app":         app,
 	}
+	logData, err := f.cacher.LogMetadata(bindingId, rev)
+	if err != nil {
+		logsSentFailure.With(pLabels).Inc()
+		return err
+	}
+	pLabels["instance_id"] = logData.InstanceParam.InstanceID
+	pLabels["plan_name"] = logData.InstanceParam.SyslogName
 	timer := prometheus.NewTimer(logsSentDuration.With(pLabels))
 	defer timer.ObserveDuration()
 
 	patterns := make([]string, 0)
 	if len(logData.InstanceParam.Patterns) > 0 {
 		patterns = append(patterns, model.Patterns(logData.InstanceParam.Patterns).ToList()...)
-	}
-	if len(logData.Patterns) > 0 {
-		patterns = append(patterns, model.Patterns(logData.Patterns).ToList()...)
 	}
 
 	pMes, err := f.parser.Parse(logData, message, patterns...)

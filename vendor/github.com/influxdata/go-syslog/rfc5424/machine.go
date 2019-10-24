@@ -25,6 +25,7 @@ var (
 
 const RFC3339MICRO = "2006-01-02T15:04:05.999999Z07:00"
 
+
 const start int = 1
 const first_final int = 603
 
@@ -82,6 +83,7 @@ func (m *machine) Parse(input []byte, bestEffort *bool) (*SyslogMessage, error) 
 	{
 		m.cs = start
 	}
+
 
 	{
 		if (m.p) == (m.pe) {

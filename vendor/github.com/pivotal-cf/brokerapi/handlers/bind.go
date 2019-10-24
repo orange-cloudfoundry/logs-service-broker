@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/middlewares"
+	"github.com/pivotal-cf/brokerapi/utils"
 )
 
 const (
@@ -23,7 +25,7 @@ func (h APIHandler) Bind(w http.ResponseWriter, req *http.Request) {
 	logger := h.logger.Session(bindLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
 		bindingIDLogKey:  bindingID,
-	})
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
 
 	version := getAPIVersion(req)
 	asyncAllowed := false
@@ -77,6 +79,16 @@ func (h APIHandler) Bind(w http.ResponseWriter, req *http.Request) {
 				Description: err.Error(),
 			})
 		}
+		return
+	}
+
+	if binding.AlreadyExists {
+		h.respond(w, http.StatusOK, apiresponses.BindingResponse{
+			Credentials:     binding.Credentials,
+			SyslogDrainURL:  binding.SyslogDrainURL,
+			RouteServiceURL: binding.RouteServiceURL,
+			VolumeMounts:    binding.VolumeMounts,
+		})
 		return
 	}
 

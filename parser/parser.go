@@ -3,11 +3,11 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ArthurHlt/grok"
 	"github.com/influxdata/go-syslog/rfc5424"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/tpl"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
-	"github.com/vjeantet/grok"
 	"strings"
 )
 
@@ -25,6 +25,7 @@ type TemplateData struct {
 	App       string
 	AppID     string
 	Namespace string
+	Logdata   map[string]interface{}
 }
 
 func NewParser() *Parser {
@@ -59,24 +60,7 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 		cId = defCompanyId
 	}
 	tags := model.Labels(logData.InstanceParam.Tags).ToMap()
-	for k, v := range model.Labels(logData.Tags).ToMap() {
-		tags[k] = v
-	}
-
 	data := make(map[string]interface{})
-
-	tags, err = tpl.NewTemplater(TemplateData{
-		Org:       org,
-		OrgID:     logData.InstanceParam.OrgID,
-		Space:     space,
-		SpaceID:   logData.InstanceParam.SpaceID,
-		Namespace: logData.InstanceParam.Namespace,
-		AppID:     logData.AppID,
-		App:       app,
-	}).Execute(tags)
-	if err != nil {
-		data["@exception_tag"] = err.Error()
-	}
 
 	pMes.
 		SetParameter(cId, "app", fmt.Sprintf("%s/%s/%s", org, space, app)).
@@ -86,10 +70,6 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 		SetParameter(cId, "app_id", logData.AppID).
 		SetParameter(cId, "org", org).
 		SetParameter(cId, "app_name", app)
-
-	for k, v := range tags {
-		pMes.SetParameter(cId, k, v)
-	}
 
 	for _, filter := range p.filters {
 		if !filter.Match(pMes) {
@@ -103,7 +83,7 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 		}
 		data = utils.MergeMap(data, values)
 	}
-	if len(logData.SourceLabels) > 0 {
+	if len(logData.InstanceParam.SourceLabels) > 0 {
 		currentSource := make(map[string]interface{})
 		if _, ok := data["@source"]; ok {
 			if dataMap, ok := data["@source"].(map[string]interface{}); ok {
@@ -111,10 +91,26 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 			}
 		}
 		sourceLabelMap := make(map[string]interface{})
-		for k, v := range model.Labels(logData.SourceLabels).ToMap() {
+		for k, v := range model.SourceLabels(logData.InstanceParam.SourceLabels).ToMap() {
 			sourceLabelMap[k] = v
 		}
 		data["@source"] = utils.MergeMap(sourceLabelMap, currentSource)
+	}
+	tags, err = tpl.NewTemplater(TemplateData{
+		Org:       org,
+		OrgID:     logData.InstanceParam.OrgID,
+		Space:     space,
+		SpaceID:   logData.InstanceParam.SpaceID,
+		Namespace: logData.InstanceParam.Namespace,
+		AppID:     logData.AppID,
+		App:       app,
+		Logdata:   data,
+	}).Execute(tags)
+	if err != nil {
+		data["@exception_tag"] = err.Error()
+	}
+	for k, v := range tags {
+		pMes.SetParameter(cId, k, v)
 	}
 	b, _ := json.Marshal(data)
 	pMes.SetMessage(string(b) + "\n")

@@ -1,8 +1,8 @@
 package parser
 
 import (
+	"github.com/ArthurHlt/grok"
 	"github.com/influxdata/go-syslog/rfc5424"
-	"github.com/vjeantet/grok"
 	"strconv"
 	"strings"
 )
@@ -47,12 +47,12 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 	data["@message"] = *pMes.Message()
 
 	pData := *pMes.StructuredData()
-	var cId string
-	for k, _ := range pData {
-		cId = k
-		break
+	mesData := make(map[string]string)
+	for _, vMap := range pData {
+		for k, v := range vMap {
+			mesData[k] = v
+		}
 	}
-	mesData := pData[cId]
 	cfData := map[string]interface{}{
 		"app":          mesData["app_name"],
 		"app_id":       mesData["app_id"],

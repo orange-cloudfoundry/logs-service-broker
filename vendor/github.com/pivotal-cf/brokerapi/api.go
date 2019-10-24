@@ -38,9 +38,11 @@ func New(serviceBroker ServiceBroker, logger lager.Logger, brokerCredentials Bro
 	authMiddleware := auth.NewWrapper(brokerCredentials.Username, brokerCredentials.Password).Wrap
 	apiVersionMiddleware := middlewares.APIVersionMiddleware{LoggerFactory: logger}
 
+	router.Use(middlewares.AddCorrelationIDToContext)
 	router.Use(authMiddleware)
 	router.Use(middlewares.AddOriginatingIdentityToContext)
 	router.Use(apiVersionMiddleware.ValidateAPIVersionHdr)
+	router.Use(middlewares.AddInfoLocationToContext)
 
 	return router
 }

@@ -2,9 +2,9 @@ package parser
 
 import (
 	"fmt"
+	"github.com/ArthurHlt/grok"
 	"github.com/influxdata/go-syslog/rfc5424"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
-	"github.com/vjeantet/grok"
 	"regexp"
 	"strings"
 )

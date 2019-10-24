@@ -72,17 +72,18 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 	for k, v := range params.Tags {
 		tags[k] = v
 	}
-
+	patterns := append(syslogAddr.Patterns, params.Patterns...)
 	b.db.Create(&model.InstanceParam{
-		InstanceID: instanceID,
-		SpaceID:    ctx.SpaceGUID,
-		OrgID:      ctx.OrganizationGUID,
-		Namespace:  ctx.Namespace,
-		SyslogName: syslogAddr.Name,
-		Patterns:   createPatterns(params.Patterns),
-		Tags:       model.MapToTags(tags),
-		CompanyID:  syslogAddr.CompanyID,
-		Revision:   0,
+		InstanceID:   instanceID,
+		SpaceID:      ctx.SpaceGUID,
+		OrgID:        ctx.OrganizationGUID,
+		Namespace:    ctx.Namespace,
+		SyslogName:   syslogAddr.Name,
+		Patterns:     model.ListToPatterns(patterns),
+		SourceLabels: model.MapToSourceLabels(syslogAddr.SourceLabels),
+		Tags:         model.MapToLabels(tags),
+		CompanyID:    syslogAddr.CompanyID,
+		Revision:     0,
 	})
 	return domain.ProvisionedServiceSpec{}, nil
 }
@@ -97,7 +98,12 @@ func (b LoghostBroker) foundSyslogWriter(planIDOrName string) (model.SyslogAddre
 }
 
 func (b LoghostBroker) Deprovision(ctx context.Context, instanceID string, details domain.DeprovisionDetails, asyncAllowed bool) (domain.DeprovisionServiceSpec, error) {
-	b.db.Delete(model.LogMetadata{}, "instance_id = ?", instanceID)
+	b.db.Delete(&model.LogMetadata{
+		InstanceID: instanceID,
+	}, "instance_id = ?", instanceID)
+	b.db.Delete(&model.InstanceParam{
+		InstanceID: instanceID,
+	}, "instance_id = ?", instanceID)
 	return domain.DeprovisionServiceSpec{}, nil
 }
 
@@ -105,9 +111,6 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	var instanceParam model.InstanceParam
 	var ctx model.ContextBind
 	json.Unmarshal([]byte(details.RawContext), &ctx)
-
-	var params model.BindingParams
-	json.Unmarshal(details.RawParameters, &params)
 
 	b.db.First(&instanceParam, "instance_id = ?", instanceID)
 	if instanceParam.InstanceID == "" {
@@ -119,18 +122,10 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 		appGuid = details.AppGUID
 	}
 
-	syslogAddr, err := b.foundSyslogWriter(instanceParam.SyslogName)
-	if err != nil {
-		return domain.Binding{}, err
-	}
-
 	b.db.Create(&model.LogMetadata{
-		BindingID:    bindingID,
-		InstanceID:   instanceID,
-		AppID:        appGuid,
-		Patterns:     createPatterns(params.Patterns),
-		Tags:         model.MapToTags(params.Tags),
-		SourceLabels: model.MapToTags(syslogAddr.SourceLabels),
+		BindingID:  bindingID,
+		InstanceID: instanceID,
+		AppID:      appGuid,
 	})
 
 	url, _ := url.Parse(b.config.SyslogDrainURL)
@@ -179,14 +174,16 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 
 	b.db.Delete(model.Label{}, "instance_id = ?", instanceID)
 	b.db.Delete(model.Pattern{}, "instance_id = ?", instanceID)
+
+	patterns := append(syslogAddr.Patterns, params.Patterns...)
 	b.db.Save(&model.InstanceParam{
 		InstanceID: instanceID,
 		SpaceID:    instanceParam.SpaceID,
 		OrgID:      instanceParam.OrgID,
 		Namespace:  instanceParam.Namespace,
 		SyslogName: syslogAddr.Name,
-		Patterns:   createPatterns(params.Patterns),
-		Tags:       model.MapToTags(tags),
+		Patterns:   model.ListToPatterns(patterns),
+		Tags:       model.MapToLabels(tags),
 		CompanyID:  syslogAddr.CompanyID,
 		Revision:   instanceParam.Revision + 1,
 	})
@@ -210,16 +207,12 @@ func (b LoghostBroker) GetInstance(_ context.Context, instanceID string) (domain
 		return domain.GetInstanceDetailsSpec{}, err
 	}
 
-	patterns := make([]string, len(instanceParam.Patterns))
-	for i, pattern := range instanceParam.Patterns {
-		patterns[i] = pattern.Pattern
-	}
 	return domain.GetInstanceDetailsSpec{
 		PlanID:    syslogAddr.ID,
 		ServiceID: serviceId,
 		Parameters: model.ProvisionParams{
 			Tags:     model.Labels(instanceParam.Tags).ToMap(),
-			Patterns: patterns,
+			Patterns: model.Patterns(instanceParam.Patterns).ToList(),
 		},
 	}, nil
 }
@@ -237,29 +230,11 @@ func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID strin
 		syslogDrainURl = fmt.Sprintf("%s://%s.%s", urlDrain.Scheme, bindingID, urlDrain.Host)
 	}
 	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, logData.InstanceParam.Revision)
-	patterns := make([]string, len(logData.Patterns))
-	for i, pattern := range logData.Patterns {
-		patterns[i] = pattern.Pattern
-	}
 	return domain.GetBindingSpec{
 		SyslogDrainURL: syslogDrainURl,
-		Parameters: model.ProvisionParams{
-			Tags:     model.Labels(logData.Tags).ToMap(),
-			Patterns: patterns,
-		},
 	}, nil
 }
 
 func (b LoghostBroker) LastBindingOperation(ctx context.Context, instanceID, bindingID string, details domain.PollDetails) (domain.LastOperation, error) {
 	return domain.LastOperation{}, nil
-}
-
-func createPatterns(patternsStr []string) []model.Pattern {
-	patterns := make([]model.Pattern, len(patternsStr))
-	for i, p := range patternsStr {
-		patterns[i] = model.Pattern{
-			Pattern: p,
-		}
-	}
-	return patterns
 }

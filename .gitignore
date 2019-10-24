@@ -1,3 +1,6 @@
 /*.json
+/config.yml
 /manifest.yml
 /logs-service-broker
+/*.sql
+/*.db

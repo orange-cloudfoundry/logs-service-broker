@@ -57,6 +57,7 @@ type SyslogAddress struct {
 	URLs         []string          `cloud:"urls"`
 	Tags         map[string]string `cloud:"tags"`
 	SourceLabels map[string]string `cloud:"source_labels"`
+	Patterns     []string          `cloud:"patterns"`
 }
 
 func (a SyslogAddress) ToServicePlan() brokerapi.ServicePlan {
@@ -72,21 +73,22 @@ func (a SyslogAddress) ToServicePlan() brokerapi.ServicePlan {
 }
 
 type InstanceParam struct {
-	InstanceID string `gorm:"primary_key"`
-	SpaceID    string
-	OrgID      string
-	Namespace  string
-	SyslogName string
-	CompanyID  string
-	Patterns   []Pattern `gorm:"foreignkey:InstanceID"`
-	Tags       []Label   `gorm:"foreignkey:InstanceID"`
-	Revision   int
+	InstanceID   string `gorm:"primary_key"`
+	Revision     int
+	SpaceID      string
+	OrgID        string
+	Namespace    string
+	SyslogName   string
+	CompanyID    string
+	Patterns     []Pattern     `gorm:"foreignkey:InstanceID"`
+	Tags         []Label       `gorm:"foreignkey:InstanceID"`
+	SourceLabels []SourceLabel `gorm:"foreignkey:InstanceID"`
 }
 
 func (d *InstanceParam) BeforeDelete(tx *gorm.DB) (err error) {
 	tx.Delete(Pattern{}, "instance_id = ?", d.InstanceID)
 	tx.Delete(Label{}, "instance_id = ?", d.InstanceID)
-
+	tx.Delete(SourceLabel{}, "instance_id = ?", d.InstanceID)
 	return
 }
 
@@ -95,15 +97,6 @@ type LogMetadata struct {
 	InstanceParam InstanceParam `gorm:"foreignkey:InstanceID;association_foreignkey:InstanceID"`
 	InstanceID    string
 	AppID         string
-	Patterns      []Pattern `gorm:"foreignkey:BindingID"`
-	Tags          []Label   `gorm:"foreignkey:BindingID"`
-	SourceLabels  []Label   `gorm:"foreignkey:BindingID"`
-}
-
-func (d *LogMetadata) BeforeDelete(tx *gorm.DB) (err error) {
-	tx.Delete(Pattern{}, "binding_id = ?", d.BindingID)
-	tx.Delete(Label{}, "binding_id = ?", d.BindingID)
-	return
 }
 
 type Label struct {
@@ -111,7 +104,6 @@ type Label struct {
 	Key        string
 	Value      string `gorm:"size:600"`
 	InstanceID string
-	BindingID  string
 }
 
 type Labels []Label
@@ -124,11 +116,27 @@ func (labels Labels) ToMap() map[string]string {
 	return m
 }
 
+type SourceLabel struct {
+	ID         uint `gorm:"primary_key;auto_increment"`
+	Key        string
+	Value      string `gorm:"size:600"`
+	InstanceID string
+}
+
+type SourceLabels []SourceLabel
+
+func (labels SourceLabels) ToMap() map[string]string {
+	m := make(map[string]string)
+	for _, label := range labels {
+		m[label.Key] = label.Value
+	}
+	return m
+}
+
 type Pattern struct {
 	ID         uint   `gorm:"primary_key;auto_increment"`
 	Pattern    string `gorm:"size:2550"`
 	InstanceID string
-	BindingID  string
 }
 
 type ContextProvision struct {
@@ -172,11 +180,6 @@ type ProvisionParams struct {
 	Tags     map[string]string `json:"tags"`
 }
 
-type BindingParams struct {
-	Patterns []string          `json:"patterns"`
-	Tags     map[string]string `json:"tags"`
-}
-
 type Patterns []Pattern
 
 func (p Patterns) ToList() []string {
@@ -187,7 +190,22 @@ func (p Patterns) ToList() []string {
 	return ls
 }
 
-func MapToTags(m map[string]string) []Label {
+func ListToPatterns(l []string) []Pattern {
+	if l == nil || len(l) == 0 {
+		return []Pattern{}
+	}
+	patterns := make([]Pattern, len(l))
+	i := 0
+	for _, v := range l {
+		patterns[i] = Pattern{
+			Pattern: v,
+		}
+		i++
+	}
+	return patterns
+}
+
+func MapToLabels(m map[string]string) []Label {
 	if m == nil || len(m) == 0 {
 		return []Label{}
 	}
@@ -195,6 +213,22 @@ func MapToTags(m map[string]string) []Label {
 	i := 0
 	for k, v := range m {
 		tags[i] = Label{
+			Key:   k,
+			Value: v,
+		}
+		i++
+	}
+	return tags
+}
+
+func MapToSourceLabels(m map[string]string) []SourceLabel {
+	if m == nil || len(m) == 0 {
+		return []SourceLabel{}
+	}
+	tags := make([]SourceLabel, len(m))
+	i := 0
+	for k, v := range m {
+		tags[i] = SourceLabel{
 			Key:   k,
 			Value: v,
 		}

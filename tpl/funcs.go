@@ -1,6 +1,7 @@
 package tpl
 
 import (
+	"fmt"
 	"github.com/spf13/cast"
 	"strings"
 	"text/template"
@@ -13,6 +14,22 @@ var builtins = template.FuncMap{
 	"trimPrefix": trimPrefix,
 	"hasPrefix":  hasPrefix,
 	"hasSuffix":  hasSuffix,
+	"ret":        ret,
+}
+
+func ret(m map[string]interface{}, delim string) string {
+	delimSplit := strings.Split(delim, ".")
+	v, ok := m[delimSplit[0]]
+	if !ok {
+		return ""
+	}
+	if len(delimSplit) == 1 {
+		return fmt.Sprint(v)
+	}
+	if _, ok := v.(map[string]interface{}); !ok {
+		return fmt.Sprint(v)
+	}
+	return ret(v.(map[string]interface{}), strings.Join(delimSplit[1:], "."))
 }
 
 func split(a interface{}, delimiter string) ([]string, error) {

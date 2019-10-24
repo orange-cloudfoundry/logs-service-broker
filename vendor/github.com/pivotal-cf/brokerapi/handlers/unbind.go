@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/middlewares"
+	"github.com/pivotal-cf/brokerapi/utils"
 )
 
 const unbindLogKey = "unbind"
@@ -20,7 +22,7 @@ func (h APIHandler) Unbind(w http.ResponseWriter, req *http.Request) {
 	logger := h.logger.Session(unbindLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
 		bindingIDLogKey:  bindingID,
-	})
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
 
 	version := getAPIVersion(req)
 	asyncAllowed := req.FormValue("accepts_incomplete") == "true"
@@ -29,7 +31,7 @@ func (h APIHandler) Unbind(w http.ResponseWriter, req *http.Request) {
 		h.respond(w, http.StatusUnprocessableEntity, apiresponses.ErrorResponse{
 			Description: err.Error(),
 		})
-		logger.Error(apiVersionInvalidKey, err)
+		logger.Error(middlewares.ApiVersionInvalidKey, err)
 		return
 	}
 	details := domain.UnbindDetails{

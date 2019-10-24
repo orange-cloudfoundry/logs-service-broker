@@ -89,22 +89,48 @@ func (c *MetaCacher) EvictByInstanceId(instanceId string) {
 // clean expired cached to ensure to not use to much memory
 // This need to be called in a goroutine and do a kind of stop the world during cleaning sync map
 func (c *MetaCacher) Cleaner() {
+	sleepDuration := 24 * time.Hour
+	if c.cacheDuration < 0 {
+		return
+	} else {
+		sleepDuration = c.cacheDuration
+	}
+	for {
+		c.cleanExpired()
+		c.cleanWhenNotInDB()
+		time.Sleep(sleepDuration)
+	}
+}
+
+func (c *MetaCacher) cleanWhenNotInDB() {
+	if c.cacheDuration > 0 {
+		return
+	}
+	c.mapBinding.Range(func(key, value interface{}) bool {
+		var logData model.LogMetadata
+		c.db.First(&logData, "binding_id = ?", value.(LogMetadataCached).BindingID)
+		if logData.BindingID != "" {
+			return true
+		}
+		c.EvictByBindingId(logData.BindingID)
+		return true
+	})
+}
+
+func (c *MetaCacher) cleanExpired() {
 	if c.cacheDuration < 0 {
 		return
 	}
-	for {
-		toDelete := make([]string, 0)
-		now := time.Now()
-		c.mapBinding.Range(func(key, value interface{}) bool {
-			logData := value.(LogMetadataCached)
-			if logData.ExpireAt.After(now) {
-				toDelete = append(toDelete, key.(string))
-			}
-			return true
-		})
-		for _, del := range toDelete {
-			c.EvictByBindingId(del)
+	toDelete := make([]string, 0)
+	now := time.Now()
+	c.mapBinding.Range(func(key, value interface{}) bool {
+		logData := value.(LogMetadataCached)
+		if logData.ExpireAt.After(now) {
+			toDelete = append(toDelete, key.(string))
 		}
-		time.Sleep(c.cacheDuration)
+		return true
+	})
+	for _, del := range toDelete {
+		c.EvictByBindingId(del)
 	}
 }

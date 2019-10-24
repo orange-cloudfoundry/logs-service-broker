@@ -7,6 +7,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/middlewares"
+	"github.com/pivotal-cf/brokerapi/utils"
 )
 
 const getBindLogKey = "getBinding"
@@ -19,7 +21,7 @@ func (h APIHandler) GetBinding(w http.ResponseWriter, req *http.Request) {
 	logger := h.logger.Session(getBindLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
 		bindingIDLogKey:  bindingID,
-	})
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
 
 	version := getAPIVersion(req)
 	if version.Minor < 14 {
@@ -27,7 +29,7 @@ func (h APIHandler) GetBinding(w http.ResponseWriter, req *http.Request) {
 		h.respond(w, http.StatusPreconditionFailed, apiresponses.ErrorResponse{
 			Description: err.Error(),
 		})
-		logger.Error(apiVersionInvalidKey, err)
+		logger.Error(middlewares.ApiVersionInvalidKey, err)
 		return
 	}
 

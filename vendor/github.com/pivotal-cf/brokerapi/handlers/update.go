@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/middlewares"
+	"github.com/pivotal-cf/brokerapi/utils"
 )
 
 const updateLogKey = "update"
@@ -19,7 +21,7 @@ func (h APIHandler) Update(w http.ResponseWriter, req *http.Request) {
 
 	logger := h.logger.Session(updateLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
-	})
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
 
 	var details domain.UpdateDetails
 	if err := json.NewDecoder(req.Body).Decode(&details); err != nil {

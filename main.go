@@ -14,6 +14,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/gormigrate.v1"
 	"io"
 	"net/http"
 	"net/url"
@@ -85,7 +86,11 @@ func boot() error {
 	if log.GetLevel() == log.DebugLevel {
 		db.LogMode(true)
 	}
-	db.AutoMigrate(&model.LogMetadata{}, &model.InstanceParam{}, &model.Patterns{}, &model.Label{})
+
+	migrate := gormigrate.New(db, gormigrate.DefaultOptions, gormMigration)
+	if err := migrate.Migrate(); err != nil {
+		log.Fatalf("Could not migrate: %v", err)
+	}
 
 	sw, err := CreateWriters(config.SyslogAddresses)
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/middlewares"
 	"github.com/pivotal-cf/brokerapi/utils"
 )
 
@@ -26,7 +27,7 @@ func (h *APIHandler) Provision(w http.ResponseWriter, req *http.Request) {
 
 	logger := h.logger.Session(provisionLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
-	})
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
 
 	var details domain.ProvisionDetails
 	if err := json.NewDecoder(req.Body).Decode(&details); err != nil {
@@ -110,7 +111,11 @@ func (h *APIHandler) Provision(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if provisionResponse.IsAsync {
+	if provisionResponse.AlreadyExists {
+		h.respond(w, http.StatusOK, apiresponses.ProvisioningResponse{
+			DashboardURL: provisionResponse.DashboardURL,
+		})
+	} else if provisionResponse.IsAsync {
 		h.respond(w, http.StatusAccepted, apiresponses.ProvisioningResponse{
 			DashboardURL:  provisionResponse.DashboardURL,
 			OperationData: provisionResponse.OperationData,

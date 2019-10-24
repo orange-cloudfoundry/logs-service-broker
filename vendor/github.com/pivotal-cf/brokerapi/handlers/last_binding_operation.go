@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/middlewares"
+	"github.com/pivotal-cf/brokerapi/utils"
 )
 
 const lastBindingOperationLogKey = "lastBindingOperation"
@@ -24,7 +26,7 @@ func (h APIHandler) LastBindingOperation(w http.ResponseWriter, req *http.Reques
 
 	logger := h.logger.Session(lastBindingOperationLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
-	})
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
 
 	version := getAPIVersion(req)
 	if version.Minor < 14 {
@@ -32,7 +34,7 @@ func (h APIHandler) LastBindingOperation(w http.ResponseWriter, req *http.Reques
 		h.respond(w, http.StatusPreconditionFailed, apiresponses.ErrorResponse{
 			Description: err.Error(),
 		})
-		logger.Error(apiVersionInvalidKey, err)
+		logger.Error(middlewares.ApiVersionInvalidKey, err)
 		return
 	}
 
