@@ -28,6 +28,18 @@ type TemplateData struct {
 	Logdata   map[string]interface{}
 }
 
+type MsgParam map[string]map[string]string
+
+func (p MsgParam) SetParameter(cid, key, val string) MsgParam {
+	data := make(map[string]string)
+	if prevData, ok := p[cid]; ok {
+		data = prevData
+	}
+	data[key] = val
+	p[cid] = data
+	return p
+}
+
 func NewParser() *Parser {
 	grokParser, _ := grok.NewWithConfig(&grok.Config{
 		NamedCapturesOnly: true,
@@ -61,8 +73,8 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 	}
 	tags := model.Labels(logData.InstanceParam.Tags).ToMap()
 	data := make(map[string]interface{})
-
-	pMes.
+	msgParam := MsgParam(*pMes.StructuredData())
+	msgParam.
 		SetParameter(cId, "app", fmt.Sprintf("%s/%s/%s", org, space, app)).
 		SetParameter(cId, "space", space).
 		SetParameter(cId, "space_id", logData.InstanceParam.SpaceID).
@@ -110,9 +122,11 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 		data["@exception_tag"] = err.Error()
 	}
 	for k, v := range tags {
-		pMes.SetParameter(cId, k, v)
+		msgParam.SetParameter(cId, k, v)
 	}
 	b, _ := json.Marshal(data)
+	structDataPtr := pMes.StructuredData()
+	*structDataPtr = msgParam
 	pMes.SetMessage(string(b) + "\n")
 
 	return pMes, nil
