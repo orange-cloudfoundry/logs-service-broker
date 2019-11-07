@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/gormigrate.v1"
 )
 
@@ -87,4 +88,31 @@ func migrateLabels(db *gorm.DB) error {
 	db.Delete(&model.Label{}, "instance_id IS NULL or instance_id = ''")
 	db.Delete(&model.Pattern{}, "instance_id IS NULL or instance_id = ''")
 	return nil
+}
+
+func migratePatternIfNeeded(db *gorm.DB, syslogAddrs model.SyslogAddresses) {
+	log.Info("Migrating patterns if needed ...")
+	for _, syslogAddr := range syslogAddrs {
+		for _, pattern := range syslogAddr.Patterns {
+			ists := make([]model.InstanceParam, 0)
+			db.Table("instance_params i").
+				Where("i.syslog_name = ? AND ? NOT IN (?)",
+					syslogAddr.Name, pattern,
+					db.Table("patterns p").Select("p.pattern").Where("p.instance_id = i.instance_id").QueryExpr(),
+				).
+				Find(&ists)
+			if len(ists) == 0 {
+				continue
+			}
+			entry := log.WithField("syslog_name", syslogAddr.Name).WithField("pattern", pattern)
+			entry.Infof("Migrating %d instances to add this pattern", len(ists))
+			for _, ist := range ists {
+				db.Create(&model.Pattern{
+					InstanceID: ist.InstanceID,
+					Pattern:    pattern,
+				})
+			}
+		}
+	}
+	log.Info("Finished migrating patterns if needed.")
 }
