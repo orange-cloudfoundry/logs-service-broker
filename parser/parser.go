@@ -71,9 +71,12 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 	if cId == "" {
 		cId = defCompanyId
 	}
+
 	tags := model.Labels(logData.InstanceParam.Tags).ToMap()
 	data := make(map[string]interface{})
+	pMes.SetParameter("ensure-init-data@0", "foo", "bar")
 	msgParam := MsgParam(*pMes.StructuredData())
+	delete(msgParam, "ensure-init-data@0")
 	msgParam.
 		SetParameter(cId, "app", fmt.Sprintf("%s/%s/%s", org, space, app)).
 		SetParameter(cId, "space", space).
