@@ -16,10 +16,7 @@ type AppFilter struct {
 var regexJson = regexp.MustCompile(`^\s*{\s*".*}\s*$`)
 
 func (f *AppFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
-	if regexJson.MatchString(*pMes.Message()) {
-		return f.filterJson(*pMes.Message())
-	}
-	return f.filterProgramPattern(*pMes.Message())
+	return f.FilterPatterns(pMes, []string{})
 }
 
 func (f *AppFilter) parseJsonMapValue(m map[string]interface{}) map[string]interface{} {
@@ -48,25 +45,27 @@ func (f *AppFilter) filterProgramPattern(message string) map[string]interface{} 
 		break
 	}
 	if len(resultMap) == 0 {
-		return map[string]interface{}{
-			"@message": message,
-		}
+		return resultMap
 	}
 	if appData, ok := resultMap["app"]; ok {
 		resultMap["@app"] = appData
 	}
-	return f.parseJsonMapValue(resultMap)
+	return resultMap
 }
 
 func (f *AppFilter) FilterPatterns(pMes *rfc5424.SyslogMessage, patterns []string) map[string]interface{} {
-	if regexJson.MatchString(*pMes.Message()) {
-		return f.filterJson(*pMes.Message())
+	return f.filterPatternsMsg(*pMes.Message(), patterns)
+}
+
+func (f *AppFilter) filterPatternsMsg(message string, patterns []string) map[string]interface{} {
+	if regexJson.MatchString(message) {
+		return f.filterJson(message)
 	}
 	resultMap := make(map[string]interface{})
 	for _, pattern := range patterns {
 		values, _ := f.g.ParseTyped(
 			pattern,
-			*pMes.Message(),
+			message,
 		)
 		if len(values) == 0 {
 			continue
@@ -75,10 +74,35 @@ func (f *AppFilter) FilterPatterns(pMes *rfc5424.SyslogMessage, patterns []strin
 		break
 	}
 	if len(resultMap) == 0 {
-		return f.filterProgramPattern(*pMes.Message())
+		resultMap = f.filterProgramPattern(message)
 	}
+	if len(resultMap) == 0 {
+		return map[string]interface{}{
+			"@message": message,
+		}
+	}
+	resultMap = f.parseJsonMapValue(resultMap)
+	msgKey, textValue := f.findTextValue(resultMap, []string{"@message", "@raw", "text"})
+	if textValue != "" {
+		resultMap = utils.MergeMap(resultMap, f.filterPatternsMsg(textValue, patterns))
+	}
+	if msg, ok := resultMap["@message"]; ok {
+		resultMap[msgKey] = fmt.Sprint(msg)
+	}
+	return resultMap
+}
 
-	return f.parseJsonMapValue(resultMap)
+func (f *AppFilter) findTextValue(m map[string]interface{}, possibleKeys []string) (key, value string) {
+	for _, key := range possibleKeys {
+		v, exist := m[key]
+		if !exist {
+			continue
+		}
+		if txt, ok := v.(string); ok {
+			return key, txt
+		}
+	}
+	return "", ""
 }
 
 func (f *AppFilter) filterJson(message string) map[string]interface{} {

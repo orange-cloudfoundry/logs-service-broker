@@ -14,6 +14,14 @@ func Mapper(m map[string]interface{}) map[string]interface{} {
 }
 
 func Mapkv(k string, v interface{}) map[string]interface{} {
+	if vStr, ok := v.(string); ok && vStr != "" &&
+		(vStr[0] == '"' && vStr[len(vStr)-1] == '"' || vStr[0] == '\'' && vStr[len(vStr)-1] == '\'') {
+		if len(vStr)-2 <= 0 {
+			v = ""
+		} else {
+			v = vStr[1 : len(vStr)-2]
+		}
+	}
 	if k[0] != '[' {
 		return map[string]interface{}{
 			k: v,
