@@ -63,9 +63,6 @@ func Dial(addr string) (*Writer, error) {
 		raddr:    u.Host,
 	}
 
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
 	err = w.connect()
 	if err != nil {
 		return nil, err
@@ -76,6 +73,8 @@ func Dial(addr string) (*Writer, error) {
 // connect makes a connection to the syslog server.
 // It must be called with w.mu held.
 func (w *Writer) connect() (err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	if w.conn != nil {
 		// ignore err from close, it makes sense to continue anyway
 		w.conn.close()
@@ -94,9 +93,6 @@ func (w *Writer) connect() (err error) {
 }
 
 func (w *Writer) writeAndRetry(s string) (int, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
 	if w.conn != nil {
 		if n, err := w.write(s); err == nil {
 			return n, err
@@ -105,6 +101,7 @@ func (w *Writer) writeAndRetry(s string) (int, error) {
 	if err := w.connect(); err != nil {
 		return 0, err
 	}
+
 	return w.write(s)
 }
 
