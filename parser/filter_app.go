@@ -10,7 +10,8 @@ import (
 )
 
 type AppFilter struct {
-	g *grok.Grok
+	g           *grok.Grok
+	parsingKeys []string
 }
 
 var regexJson = regexp.MustCompile(`^\s*{\s*".*}\s*$`)
@@ -82,20 +83,23 @@ func (f *AppFilter) filterPatternsMsg(message string, patterns []string) map[str
 		}
 	}
 	resultMap = f.parseJsonMapValue(resultMap)
-	msgKey, textValue := f.findTextValue(resultMap, []string{"@message", "@raw", "text"})
+	msgKey, textValue := f.findTextValue(resultMap, f.parsingKeys)
 	if textValue != "" {
 		resultMap = utils.MergeMap(resultMap, f.filterPatternsMsg(textValue, patterns))
 	}
-	if msg, ok := resultMap["@message"]; ok {
+	msg, hasMsg := resultMap["@message"]
+	if hasMsg {
 		resultMap[msgKey] = fmt.Sprint(msg)
+	} else {
+		resultMap["@message"] = ""
 	}
 	return resultMap
 }
 
 func (f *AppFilter) findTextValue(m map[string]interface{}, possibleKeys []string) (key, value string) {
 	for _, key := range possibleKeys {
-		v, exist := m[key]
-		if !exist {
+		v := utils.FoundVarDelim(m, key)
+		if v == nil {
 			continue
 		}
 		if txt, ok := v.(string); ok {

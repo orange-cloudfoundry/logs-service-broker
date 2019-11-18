@@ -40,7 +40,7 @@ func (p MsgParam) SetParameter(cid, key, val string) MsgParam {
 	return p
 }
 
-func NewParser() *Parser {
+func NewParser(parsingKeys []string) *Parser {
 	grokParser, _ := grok.NewWithConfig(&grok.Config{
 		NamedCapturesOnly: true,
 	})
@@ -50,7 +50,7 @@ func NewParser() *Parser {
 		filters: []Filter{
 			&DefaultFilter{grokParser},
 			&RtrFilter{grokParser},
-			&AppFilter{grokParser},
+			&AppFilter{grokParser, append(parsingKeys, "@message", "@raw", "text")},
 		},
 	}
 }

@@ -36,6 +36,7 @@ type Config struct {
 	SQLCnxMaxLife         string          `cloud:"sql_cnx_max_life" cloud-default:"1h"`
 	CacheDuration         string          `cloud:"cache_duration" cloud-default:"10m"`
 	NotExitWhenConnFailed bool            `cloud:"not_exit_when_con_failed"`
+	ParsingKeys           []string        `cloud:"parsing_keys"`
 }
 
 type SyslogAddresses []SyslogAddress

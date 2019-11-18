@@ -19,7 +19,7 @@ func Mapkv(k string, v interface{}) map[string]interface{} {
 		if len(vStr)-2 <= 0 {
 			v = ""
 		} else {
-			v = vStr[1 : len(vStr)-2]
+			v = vStr[1 : len(vStr)-1]
 		}
 	}
 	if k[0] != '[' {

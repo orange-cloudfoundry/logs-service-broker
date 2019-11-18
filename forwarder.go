@@ -20,11 +20,11 @@ type Forwarder struct {
 	parser *parser.Parser
 }
 
-func NewForwarder(cacher *MetaCacher, writers map[string]io.WriteCloser) *Forwarder {
+func NewForwarder(cacher *MetaCacher, writers map[string]io.WriteCloser, parsingKeys []string) *Forwarder {
 	return &Forwarder{
 		sw:     writers,
 		cacher: cacher,
-		parser: parser.NewParser(),
+		parser: parser.NewParser(parsingKeys),
 	}
 }
 

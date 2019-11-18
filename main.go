@@ -108,7 +108,7 @@ func boot() error {
 	}
 	go c.Cleaner()
 
-	f := NewForwarder(c, sw)
+	f := NewForwarder(c, sw, config.ParsingKeys)
 	broker := NewLoghostBroker(db, c, config)
 
 	lag := lager.NewLogger("broker")
