@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"github.com/ArthurHlt/grok"
 	"github.com/influxdata/go-syslog/rfc5424"
+	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 	"regexp"
 )
 
 type AppFilter struct {
 	g           *grok.Grok
-	parsingKeys []string
+	parsingKeys []model.ParsingKey
 }
 
 var regexJson = regexp.MustCompile(`^\s*{\s*".*}\s*$`)
@@ -88,17 +89,18 @@ func (f *AppFilter) filterPatternsMsg(message string, patterns []string) map[str
 		resultMap = utils.MergeMap(resultMap, f.filterPatternsMsg(textValue, patterns))
 	}
 	msg, hasMsg := resultMap["@message"]
-	if hasMsg {
-		resultMap[msgKey] = fmt.Sprint(msg)
-	} else {
+	if hasMsg && !msgKey.Hide && msgKey.Name != "" {
+		resultMap = utils.MergeMap(resultMap, utils.CreateMapFromDelim(msgKey.Name, msg))
+	}
+	if !hasMsg {
 		resultMap["@message"] = ""
 	}
 	return resultMap
 }
 
-func (f *AppFilter) findTextValue(m map[string]interface{}, possibleKeys []string) (key, value string) {
+func (f *AppFilter) findTextValue(m map[string]interface{}, possibleKeys []model.ParsingKey) (key model.ParsingKey, value string) {
 	for _, key := range possibleKeys {
-		v := utils.FoundVarDelim(m, key)
+		v := utils.FoundVarDelim(m, key.Name)
 		if v == nil {
 			continue
 		}
@@ -106,7 +108,7 @@ func (f *AppFilter) findTextValue(m map[string]interface{}, possibleKeys []strin
 			return key, txt
 		}
 	}
-	return "", ""
+	return model.ParsingKey{}, ""
 }
 
 func (f *AppFilter) filterJson(message string) map[string]interface{} {

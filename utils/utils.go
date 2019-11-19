@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+const delimLastElem = "last"
+const delimFirstElem = "first"
+
 func Atoi(s string) int {
 	r, _ := strconv.Atoi(s)
 	return r
@@ -59,9 +62,9 @@ func foundVarSlice(s []interface{}, delim string) interface{} {
 	delimSplit := strings.Split(delim, ".")
 	var v interface{}
 	start := strings.ToLower(delimSplit[0])
-	if start == "last" {
+	if start == delimLastElem {
 		v = s[len(s)-1]
-	} else if start == "first" {
+	} else if start == delimFirstElem {
 		v = s[0]
 	} else {
 		i, _ := strconv.Atoi(start)
@@ -83,4 +86,16 @@ func FoundVarDelim(elem interface{}, delim string) interface{} {
 		return foundVarDelimMap(elem.(map[string]interface{}), delim)
 	}
 	return nil
+}
+
+func CreateMapFromDelim(delim string, value interface{}) map[string]interface{} {
+	delimSplit := strings.Split(delim, ".")
+	if len(delimSplit) == 1 {
+		return map[string]interface{}{
+			delimSplit[0]: value,
+		}
+	}
+	return map[string]interface{}{
+		delimSplit[0]: CreateMapFromDelim(strings.Join(delimSplit[1:], "."), value),
+	}
 }

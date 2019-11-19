@@ -30,6 +30,18 @@ type TemplateData struct {
 
 type MsgParam map[string]map[string]string
 
+var defaultParsingKeys = []model.ParsingKey{
+	{
+		Name: "@message",
+	},
+	{
+		Name: "@raw",
+	},
+	{
+		Name: "text",
+	},
+}
+
 func (p MsgParam) SetParameter(cid, key, val string) MsgParam {
 	data := make(map[string]string)
 	if prevData, ok := p[cid]; ok {
@@ -40,7 +52,7 @@ func (p MsgParam) SetParameter(cid, key, val string) MsgParam {
 	return p
 }
 
-func NewParser(parsingKeys []string) *Parser {
+func NewParser(parsingKeys []model.ParsingKey) *Parser {
 	grokParser, _ := grok.NewWithConfig(&grok.Config{
 		NamedCapturesOnly: true,
 	})
@@ -50,7 +62,7 @@ func NewParser(parsingKeys []string) *Parser {
 		filters: []Filter{
 			&DefaultFilter{grokParser},
 			&RtrFilter{grokParser},
-			&AppFilter{grokParser, append(parsingKeys, "@message", "@raw", "text")},
+			&AppFilter{grokParser, append(parsingKeys, defaultParsingKeys...)},
 		},
 	}
 }
