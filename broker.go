@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
@@ -134,12 +135,15 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 
 	url, _ := url.Parse(b.config.SyslogDrainURL)
 	scheme := "http"
+	port := b.config.Port
 	if (b.config.PreferTLS || params.UseTLS) && b.config.HasTLS() {
 		scheme = "https"
+		port = b.config.TLSPort
 	}
-	syslogDrainURl := fmt.Sprintf("%s://%s/%s", scheme, url.Host, bindingID)
+	domainURL := strings.Split(url.Host, ":")[0]
+	syslogDrainURl := fmt.Sprintf("%s://%s:%d/%s", scheme, domainURL, port, bindingID)
 	if b.config.VirtualHost {
-		syslogDrainURl = fmt.Sprintf("%s://%s.%s", scheme, bindingID, url.Host)
+		syslogDrainURl = fmt.Sprintf("%s://%s.%s:%d/", scheme, bindingID, domainURL, port)
 	}
 	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, instanceParam.Revision)
 	return domain.Binding{
@@ -233,12 +237,15 @@ func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID strin
 
 	urlDrain, _ := url.Parse(b.config.SyslogDrainURL)
 	scheme := "http"
+	port := b.config.Port
 	if b.config.PreferTLS && b.config.HasTLS() {
 		scheme = "https"
+		port = b.config.TLSPort
 	}
-	syslogDrainURl := fmt.Sprintf("%s://%s/%s", scheme, urlDrain.Host, bindingID)
+	domainURL := strings.Split(urlDrain.Host, ":")[0]
+	syslogDrainURl := fmt.Sprintf("%s://%s:%d/%s", scheme, domainURL, port, bindingID)
 	if b.config.VirtualHost {
-		syslogDrainURl = fmt.Sprintf("%s://%s.%s", scheme, bindingID, urlDrain.Host)
+		syslogDrainURl = fmt.Sprintf("%s://%s.%s:%d/", scheme, bindingID, domainURL, port)
 	}
 	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, logData.InstanceParam.Revision)
 	return domain.GetBindingSpec{

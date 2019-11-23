@@ -80,6 +80,15 @@ func boot() error {
 
 	loadLogConfig(config)
 
+	port := config.Port
+	if gautocloud.GetAppInfo().Port > 0 {
+		port = gautocloud.GetAppInfo().Port
+	}
+	if port == 0 {
+		port = 8088
+	}
+	config.Port = port
+
 	db := retrieveGormDb(config)
 	defer db.Close()
 
@@ -144,15 +153,9 @@ func boot() error {
 	if !config.NotExitWhenConnFailed {
 		go checkDbConnection(db)
 	}
-	port := config.Port
-	if gautocloud.GetAppInfo().Port > 0 {
-		port = gautocloud.GetAppInfo().Port
-	}
-	if port == 0 {
-		port = 8088
-	}
+
 	if config.HasTLS() {
-		log.Debugf("serving https on %s", fmt.Sprintf(":%d", config.TLSPort))
+		log.Info("serving https on :%d", config.TLSPort)
 		go func() {
 			err := http.ListenAndServeTLS(fmt.Sprintf(":%d", config.TLSPort), config.SSLCertFile, config.SSLKeyFile, r)
 			if err != nil {
@@ -162,8 +165,8 @@ func boot() error {
 		}()
 
 	}
-	log.Debugf("serving http on %s", fmt.Sprintf(":%d", port))
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), r)
+	log.Infof("serving http on :%d", config.Port)
+	return http.ListenAndServe(fmt.Sprintf(":%d", config.Port), r)
 }
 
 func checkDbConnection(db *gorm.DB) {
