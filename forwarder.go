@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/orange-cloudfoundry/logs-service-broker/model"
-	"github.com/orange-cloudfoundry/logs-service-broker/parser"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
+	"github.com/orange-cloudfoundry/logs-service-broker/model"
+	"github.com/orange-cloudfoundry/logs-service-broker/parser"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 )
 
 type Forwarder struct {
@@ -56,11 +57,14 @@ func (f Forwarder) Forward(bindingId string, rev int, message []byte) error {
 		patterns = append(patterns, model.Patterns(logData.InstanceParam.Patterns).ToList()...)
 	}
 
+	timerParse := prometheus.NewTimer(logsParseDuration.With(pLabels))
 	pMes, err := f.parser.Parse(logData, message, patterns...)
 	if err != nil {
 		logsSentFailure.With(pLabels).Inc()
+		timerParse.ObserveDuration()
 		return err
 	}
+	timerParse.ObserveDuration()
 	if pMes == nil {
 		logsSentFailure.With(pLabels).Inc()
 		return nil

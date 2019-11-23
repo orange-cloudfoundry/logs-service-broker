@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/pivotal-cf/brokerapi/domain"
-	"net/url"
 )
 
 const serviceId = "11c147f0-297f-4fd6-9401-e94e64f37094"
@@ -112,6 +113,9 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	var ctx model.ContextBind
 	json.Unmarshal([]byte(details.RawContext), &ctx)
 
+	var params model.BindParams
+	json.Unmarshal(details.RawParameters, &params)
+
 	b.db.First(&instanceParam, "instance_id = ?", instanceID)
 	if instanceParam.InstanceID == "" {
 		return domain.Binding{}, fmt.Errorf("instance id '%s' not found", instanceID)
@@ -129,10 +133,13 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	})
 
 	url, _ := url.Parse(b.config.SyslogDrainURL)
-
-	syslogDrainURl := fmt.Sprintf("%s://%s/%s", url.Scheme, url.Host, bindingID)
+	scheme := "http"
+	if (b.config.PreferTLS || params.UseTLS) && b.config.HasTLS() {
+		scheme = "https"
+	}
+	syslogDrainURl := fmt.Sprintf("%s://%s/%s", scheme, url.Host, bindingID)
 	if b.config.VirtualHost {
-		syslogDrainURl = fmt.Sprintf("%s://%s.%s", url.Scheme, bindingID, url.Host)
+		syslogDrainURl = fmt.Sprintf("%s://%s.%s", scheme, bindingID, url.Host)
 	}
 	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, instanceParam.Revision)
 	return domain.Binding{
@@ -225,9 +232,13 @@ func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID strin
 	}
 
 	urlDrain, _ := url.Parse(b.config.SyslogDrainURL)
-	syslogDrainURl := fmt.Sprintf("%s://%s/%s", urlDrain.Scheme, urlDrain.Host, bindingID)
+	scheme := "http"
+	if b.config.PreferTLS && b.config.HasTLS() {
+		scheme = "https"
+	}
+	syslogDrainURl := fmt.Sprintf("%s://%s/%s", scheme, urlDrain.Host, bindingID)
 	if b.config.VirtualHost {
-		syslogDrainURl = fmt.Sprintf("%s://%s.%s", urlDrain.Scheme, bindingID, urlDrain.Host)
+		syslogDrainURl = fmt.Sprintf("%s://%s.%s", scheme, bindingID, urlDrain.Host)
 	}
 	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, logData.InstanceParam.Revision)
 	return domain.GetBindingSpec{

@@ -20,6 +20,9 @@ const (
 
 type Config struct {
 	SyslogAddresses       []SyslogAddress `cloud:"syslog_addresses"`
+	Port                  int             `cloud:"port"`
+	TLSPort               int             `cloud:"tls_port"`
+	PreferTLS             bool            `cloud:"prefer_tls"`
 	BrokerUsername        string          `cloud:"broker_username"`
 	BrokerPassword        string          `cloud:"broker_password"`
 	SyslogDrainURL        string          `cloud:"syslog_drain_url"`
@@ -37,6 +40,10 @@ type Config struct {
 	CacheDuration         string          `cloud:"cache_duration" cloud-default:"10m"`
 	NotExitWhenConnFailed bool            `cloud:"not_exit_when_con_failed"`
 	ParsingKeys           []ParsingKey    `cloud:"parsing_keys"`
+}
+
+func (c Config) HasTLS() bool {
+	return c.SSLCertFile != "" && c.SSLKeyFile != "" && c.TLSPort > 0
 }
 
 type ParsingKey struct {
@@ -184,6 +191,10 @@ type CfResponse struct {
 type ProvisionParams struct {
 	Patterns []string          `json:"patterns"`
 	Tags     map[string]string `json:"tags"`
+}
+
+type BindParams struct {
+	UseTLS bool `json:"use_tls"`
 }
 
 type Patterns []Pattern

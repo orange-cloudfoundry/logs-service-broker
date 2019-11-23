@@ -27,10 +27,19 @@ var (
 		},
 		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
 	)
+	logsParseDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "logs_parse_duration",
+			Help:    "Summary of logs parse duration (this time is included in logs_sent_duration).",
+			Buckets: []float64{0.005, 0.01, 0.1, 0.25, 0.5, 1},
+		},
+		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
+	)
 )
 
 func init() {
 	prometheus.MustRegister(logsSentFailure)
 	prometheus.MustRegister(logsSent)
 	prometheus.MustRegister(logsSentDuration)
+	prometheus.MustRegister(logsParseDuration)
 }

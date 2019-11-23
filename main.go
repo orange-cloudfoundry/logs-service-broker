@@ -1,8 +1,15 @@
 package main
 
 import (
-	"code.cloudfoundry.org/lager"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/gautocloud"
 	_ "github.com/cloudfoundry-community/gautocloud/connectors/databases/gorm"
 	"github.com/gorilla/mux"
@@ -15,12 +22,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gormigrate.v1"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
-	"time"
 )
 
 func init() {
@@ -143,14 +144,23 @@ func boot() error {
 	if !config.NotExitWhenConnFailed {
 		go checkDbConnection(db)
 	}
-
-	port := gautocloud.GetAppInfo().Port
-	if port == 0 {
-		port = 8089
+	port := config.Port
+	if gautocloud.GetAppInfo().Port > 0 {
+		port = gautocloud.GetAppInfo().Port
 	}
-	if (config.SSLCertFile != "") && (config.SSLKeyFile != "") {
-		log.Debugf("serving https on %s", fmt.Sprintf(":%d", port))
-		return http.ListenAndServeTLS(fmt.Sprintf(":%d", port), config.SSLCertFile, config.SSLKeyFile, r)
+	if port == 0 {
+		port = 8088
+	}
+	if config.HasTLS() {
+		log.Debugf("serving https on %s", fmt.Sprintf(":%d", config.TLSPort))
+		go func() {
+			err := http.ListenAndServeTLS(fmt.Sprintf(":%d", config.TLSPort), config.SSLCertFile, config.SSLKeyFile, r)
+			if err != nil {
+				panic(err)
+				os.Exit(1)
+			}
+		}()
+
 	}
 	log.Debugf("serving http on %s", fmt.Sprintf(":%d", port))
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), r)
@@ -177,25 +187,10 @@ func loadLogConfig(c model.Config) {
 			})
 		}
 	}
-
-	if c.LogLevel == "" {
-		return
-	}
-	switch strings.ToUpper(c.LogLevel) {
-	case "ERROR":
-		log.SetLevel(log.ErrorLevel)
-		return
-	case "WARN":
-		log.SetLevel(log.WarnLevel)
-		return
-	case "DEBUG":
-		log.SetLevel(log.DebugLevel)
-		return
-	case "PANIC":
-		log.SetLevel(log.PanicLevel)
-		return
-	case "FATAL":
-		log.SetLevel(log.FatalLevel)
-		return
+	lvl, err := log.ParseLevel(c.LogLevel)
+	if err != nil {
+		log.SetLevel(log.InfoLevel)
+	} else {
+		log.SetLevel(lvl)
 	}
 }
