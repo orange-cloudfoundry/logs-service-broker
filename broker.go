@@ -134,13 +134,18 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	})
 
 	url, _ := url.Parse(b.config.SyslogDrainURL)
+	domainURL := url.Host
 	scheme := "http"
 	port := b.config.Port
 	if (b.config.PreferTLS || params.UseTLS) && b.config.HasTLS() {
 		scheme = "https"
 		port = b.config.TLSPort
 	}
-	domainURL := strings.Split(url.Host, ":")[0]
+	if url.Host == "" {
+		domainURL = b.config.SyslogDrainURL
+	}
+	domainURL = strings.Split(url.Host, ":")[0]
+
 	syslogDrainURl := fmt.Sprintf("%s://%s:%d/%s", scheme, domainURL, port, bindingID)
 	if b.config.VirtualHost {
 		syslogDrainURl = fmt.Sprintf("%s://%s.%s:%d/", scheme, bindingID, domainURL, port)
@@ -236,13 +241,18 @@ func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID strin
 	}
 
 	urlDrain, _ := url.Parse(b.config.SyslogDrainURL)
+	domainURL := urlDrain.Host
 	scheme := "http"
 	port := b.config.Port
 	if b.config.PreferTLS && b.config.HasTLS() {
 		scheme = "https"
 		port = b.config.TLSPort
 	}
-	domainURL := strings.Split(urlDrain.Host, ":")[0]
+	if urlDrain.Host == "" {
+		domainURL = b.config.SyslogDrainURL
+	}
+	domainURL = strings.Split(url.Host, ":")[0]
+
 	syslogDrainURl := fmt.Sprintf("%s://%s:%d/%s", scheme, domainURL, port, bindingID)
 	if b.config.VirtualHost {
 		syslogDrainURl = fmt.Sprintf("%s://%s.%s:%d/", scheme, bindingID, domainURL, port)
