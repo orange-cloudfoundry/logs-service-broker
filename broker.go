@@ -144,7 +144,7 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	if url.Host == "" {
 		domainURL = b.config.SyslogDrainURL
 	}
-	domainURL = strings.Split(url.Host, ":")[0]
+	domainURL = strings.Split(domainURL, ":")[0]
 
 	syslogDrainURl := fmt.Sprintf("%s://%s:%d/%s", scheme, domainURL, port, bindingID)
 	if b.config.VirtualHost {
@@ -251,7 +251,7 @@ func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID strin
 	if urlDrain.Host == "" {
 		domainURL = b.config.SyslogDrainURL
 	}
-	domainURL = strings.Split(url.Host, ":")[0]
+	domainURL = strings.Split(domainURL, ":")[0]
 
 	syslogDrainURl := fmt.Sprintf("%s://%s:%d/%s", scheme, domainURL, port, bindingID)
 	if b.config.VirtualHost {
