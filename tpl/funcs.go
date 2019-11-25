@@ -2,10 +2,11 @@ package tpl
 
 import (
 	"fmt"
-	"github.com/orange-cloudfoundry/logs-service-broker/utils"
-	"github.com/spf13/cast"
 	"strings"
 	"text/template"
+
+	"github.com/orange-cloudfoundry/logs-service-broker/utils"
+	"github.com/spf13/cast"
 )
 
 var builtins = template.FuncMap{
@@ -19,7 +20,11 @@ var builtins = template.FuncMap{
 }
 
 func ret(m map[string]interface{}, delim string) string {
-	return fmt.Sprint(utils.FoundVarDelim(m, delim))
+	retVal := utils.FoundVarDelim(m, delim)
+	if retVal == nil {
+		return ""
+	}
+	return fmt.Sprint(retVal)
 }
 
 func split(a interface{}, delimiter string) ([]string, error) {

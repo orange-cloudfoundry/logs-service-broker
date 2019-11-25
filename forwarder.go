@@ -42,7 +42,7 @@ func (f Forwarder) Forward(bindingId string, rev int, message []byte) error {
 		"space":       space,
 		"app":         app,
 	}
-	logData, err := f.cacher.LogMetadata(bindingId, rev)
+	logData, err := f.cacher.LogMetadata(bindingId, rev, pLabels)
 	if err != nil {
 		logsSentFailure.With(pLabels).Inc()
 		return err

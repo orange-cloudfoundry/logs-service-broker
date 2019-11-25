@@ -117,7 +117,7 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	var params model.BindParams
 	json.Unmarshal(details.RawParameters, &params)
 
-	b.db.First(&instanceParam, "instance_id = ?", instanceID)
+	b.db.Order("revision desc").First(&instanceParam, "instance_id = ?", instanceID)
 	if instanceParam.InstanceID == "" {
 		return domain.Binding{}, fmt.Errorf("instance id '%s' not found", instanceID)
 	}
@@ -168,7 +168,7 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 	}
 
 	var instanceParam model.InstanceParam
-	b.db.Set("gorm:auto_preload", true).First(&instanceParam, "instance_id = ?", instanceID)
+	b.db.Set("gorm:auto_preload", true).Order("revision desc").First(&instanceParam, "instance_id = ?", instanceID)
 	if instanceParam.InstanceID == "" {
 		return domain.UpdateServiceSpec{}, fmt.Errorf("instance id '%s' not found", instanceID)
 	}
@@ -192,7 +192,7 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 	b.db.Delete(model.Pattern{}, "instance_id = ?", instanceID)
 
 	patterns := append(syslogAddr.Patterns, params.Patterns...)
-	b.db.Save(&model.InstanceParam{
+	b.db.Create(&model.InstanceParam{
 		InstanceID: instanceID,
 		SpaceID:    instanceParam.SpaceID,
 		OrgID:      instanceParam.OrgID,
@@ -213,7 +213,7 @@ func (LoghostBroker) LastOperation(ctx context.Context, instanceID string, detai
 func (b LoghostBroker) GetInstance(_ context.Context, instanceID string) (domain.GetInstanceDetailsSpec, error) {
 	var instanceParam model.InstanceParam
 
-	b.db.Set("gorm:auto_preload", true).First(&instanceParam, "instance_id = ?", instanceID)
+	b.db.Set("gorm:auto_preload", true).Order("revision desc").First(&instanceParam, "instance_id = ?", instanceID)
 	if instanceParam.InstanceID == "" {
 		return domain.GetInstanceDetailsSpec{}, fmt.Errorf("instance id '%s' not found", instanceID)
 	}
@@ -235,10 +235,14 @@ func (b LoghostBroker) GetInstance(_ context.Context, instanceID string) (domain
 
 func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID string) (domain.GetBindingSpec, error) {
 	var logData model.LogMetadata
-	b.db.Set("gorm:auto_preload", true).First(&logData, "binding_id = ?", bindingID)
+
+	b.db.First(&logData, "binding_id = ?", bindingID)
 	if logData.BindingID == "" {
 		return domain.GetBindingSpec{}, fmt.Errorf("binding id '%s' not found", bindingID)
 	}
+	var instanceParam model.InstanceParam
+	b.db.Set("gorm:auto_preload", true).Order("revision desc").First(&instanceParam, "instance_id = ?", logData.InstanceID)
+	logData.InstanceParam = instanceParam
 
 	urlDrain, _ := url.Parse(b.config.SyslogDrainURL)
 	domainURL := urlDrain.Host

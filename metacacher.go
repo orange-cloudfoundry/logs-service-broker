@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/jinzhu/gorm"
-	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jinzhu/gorm"
+	"github.com/orange-cloudfoundry/logs-service-broker/model"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 )
 
 const AlwaysUseCacheKey = "always"
@@ -41,20 +44,28 @@ func NewMetaCacher(db *gorm.DB, cacheDuration string) (*MetaCacher, error) {
 	}, nil
 }
 
-func (c *MetaCacher) LogMetadata(bindingId string, revision int) (model.LogMetadata, error) {
-	logCached, ok := c.mapBinding.Load(bindingId)
+func (c *MetaCacher) LogMetadata(bindingId string, revision int, promLabels prometheus.Labels) (model.LogMetadata, error) {
+	key := c.genKey(bindingId, revision)
+	logCached, ok := c.mapBinding.Load(key)
 	if ok && !c.mustEvict(logCached.(LogMetadataCached), revision) {
 		return logCached.(LogMetadataCached).LogMetadata, nil
 	}
+	logrus.Warn("use cache")
 	var logData model.LogMetadata
-	c.db.Set("gorm:auto_preload", true).First(&logData, "binding_id = ?", bindingId)
+	c.db.First(&logData, "binding_id = ?", bindingId)
 	if logData.BindingID == "" {
 		return model.LogMetadata{}, fmt.Errorf("binding id '%s' not found", bindingId)
 	}
-	c.mapBinding.Store(bindingId, LogMetadataCached{
+	var instanceParam model.InstanceParam
+	c.db.Set("gorm:auto_preload", true).First(&instanceParam, "instance_id = ? and revision = ?", logData.InstanceID, revision)
+	logData.InstanceParam = instanceParam
+	c.mapBinding.Store(key, LogMetadataCached{
 		LogMetadata: logData,
 		ExpireAt:    time.Now().Add(c.cacheDuration),
 	})
+	promLabels["instance_id"] = logData.InstanceParam.InstanceID
+	promLabels["plan_name"] = logData.InstanceParam.SyslogName
+	logsSentWithoutCache.With(promLabels).Inc()
 	return logData, nil
 }
 
@@ -69,30 +80,27 @@ func (c *MetaCacher) mustEvict(logCached LogMetadataCached, revision int) bool {
 }
 
 func (c *MetaCacher) EvictByBindingId(bindingId string) {
-	c.mapBinding.Delete(bindingId)
-}
-
-func (c *MetaCacher) EvictByInstanceId(instanceId string) {
 	toDelete := make([]string, 0)
 	c.mapBinding.Range(func(key, value interface{}) bool {
-		logData := value.(LogMetadataCached)
-		if logData.InstanceID == instanceId {
+		if strings.HasPrefix(key.(string), bindingId) {
 			toDelete = append(toDelete, key.(string))
 		}
 		return true
 	})
 	for _, del := range toDelete {
-		c.EvictByBindingId(del)
+		c.mapBinding.Delete(del)
 	}
+}
+
+func (c *MetaCacher) genKey(bindingId string, revision int) string {
+	return fmt.Sprintf("%s~%d", bindingId, revision)
 }
 
 // clean expired cached to ensure to not use to much memory
 // This need to be called in a goroutine and do a kind of stop the world during cleaning sync map
 func (c *MetaCacher) Cleaner() {
 	sleepDuration := 24 * time.Hour
-	if c.cacheDuration < 0 {
-		return
-	} else {
+	if c.cacheDuration > 0 {
 		sleepDuration = c.cacheDuration
 	}
 	for {
@@ -131,6 +139,6 @@ func (c *MetaCacher) cleanExpired() {
 		return true
 	})
 	for _, del := range toDelete {
-		c.EvictByBindingId(del)
+		c.mapBinding.Delete(del)
 	}
 }

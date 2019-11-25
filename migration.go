@@ -48,6 +48,15 @@ var gormMigration = []*gormigrate.Migration{
 			return nil
 		},
 	},
+	{
+		ID: "migrate-pm-instance",
+		Migrate: func(db *gorm.DB) error {
+			return db.Exec("ALTER TABLE instance_params DROP PRIMARY KEY, ADD PRIMARY KEY(instance_id, revision)").Error
+		},
+		Rollback: func(db *gorm.DB) error {
+			return nil
+		},
+	},
 }
 
 func migrateLabels(db *gorm.DB) error {
@@ -75,7 +84,7 @@ func migrateLabels(db *gorm.DB) error {
 
 	for bindingId, labelIds := range bindMap {
 		var logMeta model.LogMetadata
-		db.Set("gorm:auto_preload", true).First(&logMeta, "binding_id = ?", bindingId)
+		db.First(&logMeta, "binding_id = ?", bindingId)
 		if logMeta.BindingID == "" || logMeta.InstanceID == "" {
 			continue
 		}

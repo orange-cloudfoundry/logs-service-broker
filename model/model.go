@@ -87,7 +87,7 @@ func (a SyslogAddress) ToServicePlan() brokerapi.ServicePlan {
 
 type InstanceParam struct {
 	InstanceID   string `gorm:"primary_key"`
-	Revision     int
+	Revision     int    `gorm:"primary_key"`
 	SpaceID      string
 	OrgID        string
 	Namespace    string

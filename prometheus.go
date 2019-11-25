@@ -19,6 +19,13 @@ var (
 		},
 		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
 	)
+	logsSentWithoutCache = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "logs_sent_without_cache_total",
+			Help: "Number of transmitted logs without cache system.",
+		},
+		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
+	)
 	logsSentDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "logs_sent_duration",
