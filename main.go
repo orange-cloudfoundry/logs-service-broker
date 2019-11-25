@@ -155,7 +155,7 @@ func boot() error {
 	}
 
 	if config.HasTLS() {
-		log.Info("serving https on :%d", config.TLSPort)
+		log.Infof("serving https on :%d", config.TLSPort)
 		go func() {
 			err := http.ListenAndServeTLS(fmt.Sprintf(":%d", config.TLSPort), config.SSLCertFile, config.SSLKeyFile, r)
 			if err != nil {
