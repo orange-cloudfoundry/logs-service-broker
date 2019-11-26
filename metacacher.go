@@ -9,7 +9,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 )
 
 const AlwaysUseCacheKey = "always"
@@ -50,7 +49,6 @@ func (c *MetaCacher) LogMetadata(bindingId string, revision int, promLabels prom
 	if ok && !c.mustEvict(logCached.(LogMetadataCached), revision) {
 		return logCached.(LogMetadataCached).LogMetadata, nil
 	}
-	logrus.Warn("use cache")
 	var logData model.LogMetadata
 	c.db.First(&logData, "binding_id = ?", bindingId)
 	if logData.BindingID == "" {

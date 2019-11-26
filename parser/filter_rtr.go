@@ -2,11 +2,12 @@ package parser
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/ArthurHlt/grok"
 	"github.com/influxdata/go-syslog/rfc5424"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
-	"regexp"
-	"strings"
 )
 
 type RtrFilter struct {

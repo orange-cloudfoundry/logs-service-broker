@@ -3,11 +3,12 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+
 	"github.com/ArthurHlt/grok"
 	"github.com/influxdata/go-syslog/rfc5424"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
-	"regexp"
 )
 
 type AppFilter struct {

@@ -88,6 +88,8 @@ func (f Forwarder) Forward(bindingId string, rev int, message []byte) error {
 		WithField("app", app).
 		Debug(fMes)
 
+	forwardTimer := prometheus.NewTimer(logsForwardDuration.With(pLabels))
+	defer forwardTimer.ObserveDuration()
 	_, err = writer.Write([]byte(fMes))
 	if err != nil {
 		logsSentFailure.With(pLabels).Inc()

@@ -8,12 +8,40 @@ import (
 )
 
 var labelsMigrated = false
-var gormMigration = []*gormigrate.Migration{
+
+type Migration struct {
+	ID       string
+	Migrate  func(db *gorm.DB, config model.Config) error
+	Rollback func(db *gorm.DB, config model.Config) error
+}
+
+type Migrations struct {
+	Config     model.Config
+	Migrations []*Migration
+}
+
+func (m Migrations) ToGormMigrate() []*gormigrate.Migration {
+	finalMigrations := make([]*gormigrate.Migration, 0)
+	for _, migration := range m.Migrations {
+		finalMigrations = append(finalMigrations, &gormigrate.Migration{
+			ID: migration.ID,
+			Migrate: func(db *gorm.DB) error {
+				return migration.Migrate(db, m.Config)
+			},
+			Rollback: func(db *gorm.DB) error {
+				return migration.Rollback(db, m.Config)
+			},
+		})
+	}
+	return finalMigrations
+}
+
+var gormMigration = []*Migration{
 	{
 		ID: "init",
-		Migrate: func(db *gorm.DB) error {
+		Migrate: func(db *gorm.DB, config model.Config) error {
 			db.AutoMigrate(&model.SourceLabel{})
-			err := migrateLabels(db)
+			err := migrateLabels(db, config)
 			if err != nil {
 				return err
 			}
@@ -21,20 +49,20 @@ var gormMigration = []*gormigrate.Migration{
 			db.AutoMigrate(&model.LogMetadata{}, &model.InstanceParam{}, &model.Patterns{}, &model.Label{})
 			return nil
 		},
-		Rollback: func(db *gorm.DB) error {
+		Rollback: func(db *gorm.DB, config model.Config) error {
 			return nil
 		},
 	},
 	{
 		ID:      "migrate-labels",
 		Migrate: migrateLabels,
-		Rollback: func(db *gorm.DB) error {
+		Rollback: func(db *gorm.DB, config model.Config) error {
 			return nil
 		},
 	},
 	{
 		ID: "set-revision",
-		Migrate: func(db *gorm.DB) error {
+		Migrate: func(db *gorm.DB, config model.Config) error {
 			var instanceParams []model.InstanceParam
 			db.Where("revision IS NULL").Find(&instanceParams)
 			for _, instanceParam := range instanceParams {
@@ -44,22 +72,44 @@ var gormMigration = []*gormigrate.Migration{
 			}
 			return nil
 		},
-		Rollback: func(db *gorm.DB) error {
+		Rollback: func(db *gorm.DB, config model.Config) error {
 			return nil
 		},
 	},
 	{
 		ID: "migrate-pm-instance",
-		Migrate: func(db *gorm.DB) error {
+		Migrate: func(db *gorm.DB, config model.Config) error {
 			return db.Exec("ALTER TABLE instance_params DROP PRIMARY KEY, ADD PRIMARY KEY(instance_id, revision)").Error
 		},
-		Rollback: func(db *gorm.DB) error {
+		Rollback: func(db *gorm.DB, config model.Config) error {
+			return nil
+		},
+	},
+	{
+		ID: "add-usetls-and-draintype",
+		Migrate: func(db *gorm.DB, config model.Config) error {
+			err := db.AutoMigrate(&model.InstanceParam{}).Error
+			if err != nil {
+				return err
+			}
+			ists := make([]model.InstanceParam, 0)
+			db.Find(&ists)
+			addrs := model.SyslogAddresses(config.SyslogAddresses)
+			for _, ist := range ists {
+				addr, _ := addrs.FoundSyslogWriter(ist.SyslogName)
+				db.Table("instance_params").
+					Where("instance_id = ? and revision = ?", ist.InstanceID, ist.Revision).
+					Updates(map[string]interface{}{"use_tls": config.PreferTLS, "drain_type": addr.DefaultDrainType})
+			}
+			return nil
+		},
+		Rollback: func(db *gorm.DB, config model.Config) error {
 			return nil
 		},
 	},
 }
 
-func migrateLabels(db *gorm.DB) error {
+func migrateLabels(db *gorm.DB, config model.Config) error {
 	if !db.HasTable(&model.Label{}) || labelsMigrated {
 		return nil
 	}

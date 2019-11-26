@@ -3,15 +3,26 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/ArthurHlt/grok"
 	"github.com/influxdata/go-syslog/rfc5424"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/tpl"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
-	"strings"
 )
 
 const defCompanyId = "logsbroker@1368"
+
+// this is from https://github.com/cloudfoundry/cf-syslog-drain-release/blob/f13fd13ec6d08822f261cbb575aa5f357ab32f0d/src/adapter/internal/egress/tcp.go#L21-L24
+// gaugeStructuredDataID contains the registered enterprise ID for the Cloud
+// Foundry Foundation.
+// See: https://www.iana.org/assignments/enterprise-numbers/enterprise-numbers
+const (
+	gaugeStructuredDataID   = "gauge@47450"
+	counterStructuredDataID = "counter@47450"
+	timerStructuredDataID   = "timer@47450"
+)
 
 type Parser struct {
 	filters []Filter
@@ -61,6 +72,7 @@ func NewParser(parsingKeys []model.ParsingKey) *Parser {
 	return &Parser{
 		filters: []Filter{
 			&DefaultFilter{grokParser},
+			&MetricsFilter{},
 			&RtrFilter{grokParser},
 			&AppFilter{grokParser, append(parsingKeys, defaultParsingKeys...)},
 		},
@@ -73,7 +85,7 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 	if err != nil {
 		return nil, err
 	}
-	if pMes.Message() == nil || strings.TrimSpace(*pMes.Message()) == "" {
+	if (pMes.Message() == nil || strings.TrimSpace(*pMes.Message()) == "") && !isMetrics(pMes) {
 		return nil, nil
 	}
 
@@ -166,4 +178,18 @@ func (p Parser) ParseHostFromMessage(message []byte) (org, space, app string) {
 	}
 
 	return p.ParseHost(pMes)
+}
+
+func isMetrics(pMes *rfc5424.SyslogMessage) bool {
+	structData := *pMes.StructuredData()
+	if _, ok := structData[gaugeStructuredDataID]; ok {
+		return true
+	}
+	if _, ok := structData[counterStructuredDataID]; ok {
+		return true
+	}
+	if _, ok := structData[timerStructuredDataID]; ok {
+		return true
+	}
+	return false
 }

@@ -96,8 +96,8 @@ func boot() error {
 	if log.GetLevel() == log.DebugLevel {
 		db.LogMode(true)
 	}
-
-	migrate := gormigrate.New(db, gormigrate.DefaultOptions, gormMigration)
+	migrations := Migrations{Config: config, Migrations: gormMigration}
+	migrate := gormigrate.New(db, gormigrate.DefaultOptions, migrations.ToGormMigrate())
 	if err := migrate.Migrate(); err != nil {
 		log.Fatalf("Could not migrate: %v", err)
 	}

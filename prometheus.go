@@ -42,6 +42,14 @@ var (
 		},
 		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
 	)
+	logsForwardDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "logs_forward_duration",
+			Help:    "Summary of logs forward duration (this time is included in logs_sent_duration).",
+			Buckets: []float64{0.005, 0.01, 0.1, 0.25, 0.5, 1},
+		},
+		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
+	)
 )
 
 func init() {
@@ -49,4 +57,6 @@ func init() {
 	prometheus.MustRegister(logsSent)
 	prometheus.MustRegister(logsSentDuration)
 	prometheus.MustRegister(logsParseDuration)
+	prometheus.MustRegister(logsSentWithoutCache)
+	prometheus.MustRegister(logsForwardDuration)
 }

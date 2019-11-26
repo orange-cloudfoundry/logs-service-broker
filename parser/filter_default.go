@@ -1,10 +1,11 @@
 package parser
 
 import (
-	"github.com/ArthurHlt/grok"
-	"github.com/influxdata/go-syslog/rfc5424"
 	"strconv"
 	"strings"
+
+	"github.com/ArthurHlt/grok"
+	"github.com/influxdata/go-syslog/rfc5424"
 )
 
 type DefaultFilter struct {
@@ -42,9 +43,11 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 	data["@shipper"] = map[string]interface{}{"name": "log-service", "priority": *pMes.Priority()}
 	data["@input"] = "syslog"
 	data["@type"] = "LogMessage"
-	data["@level"] = "INFO"
 	data["@timestamp"] = *pMes.Timestamp()
-	data["@message"] = *pMes.Message()
+	if pMes.Message() != nil && strings.TrimSpace(*pMes.Message()) == "" {
+		data["@level"] = "INFO"
+		data["@message"] = *pMes.Message()
+	}
 
 	pData := *pMes.StructuredData()
 	mesData := make(map[string]string)

@@ -1,6 +1,10 @@
 package model
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
 	"github.com/cloudfoundry-community/gautocloud"
 	"github.com/cloudfoundry-community/gautocloud/connectors/generic"
 	"github.com/jinzhu/gorm"
@@ -15,7 +19,8 @@ const (
 	PlatformCF  = "cloudfoundry"
 	PlatformK8s = "kubernetes"
 
-	RevKey = "rev"
+	RevKey       = "rev"
+	DrainTypeKey = "drain-type"
 )
 
 type Config struct {
@@ -61,16 +66,26 @@ func (a SyslogAddresses) ToServicePlans() []brokerapi.ServicePlan {
 	return sp
 }
 
+func (a SyslogAddresses) FoundSyslogWriter(planIDOrName string) (SyslogAddress, error) {
+	for _, addr := range a {
+		if addr.ID == planIDOrName || addr.Name == planIDOrName {
+			return addr, nil
+		}
+	}
+	return SyslogAddress{}, fmt.Errorf("Cannot found syslog writer for plan id or name '%s'.", planIDOrName)
+}
+
 type SyslogAddress struct {
-	ID           string            `cloud:"id"`
-	CompanyID    string            `cloud:"company_id"`
-	Name         string            `cloud:"name"`
-	Description  string            `cloud:"description"`
-	Bullets      []string          `cloud:"bullets"`
-	URLs         []string          `cloud:"urls"`
-	Tags         map[string]string `cloud:"tags"`
-	SourceLabels map[string]string `cloud:"source_labels"`
-	Patterns     []string          `cloud:"patterns"`
+	ID               string            `cloud:"id"`
+	CompanyID        string            `cloud:"company_id"`
+	Name             string            `cloud:"name"`
+	Description      string            `cloud:"description"`
+	Bullets          []string          `cloud:"bullets"`
+	URLs             []string          `cloud:"urls"`
+	Tags             map[string]string `cloud:"tags"`
+	SourceLabels     map[string]string `cloud:"source_labels"`
+	Patterns         []string          `cloud:"patterns"`
+	DefaultDrainType DrainType         `cloud:"default_drain_type"`
 }
 
 func (a SyslogAddress) ToServicePlan() brokerapi.ServicePlan {
@@ -93,6 +108,8 @@ type InstanceParam struct {
 	Namespace    string
 	SyslogName   string
 	CompanyID    string
+	UseTls       bool
+	DrainType    DrainType
 	Patterns     []Pattern     `gorm:"foreignkey:InstanceID"`
 	Tags         []Label       `gorm:"foreignkey:InstanceID"`
 	SourceLabels []SourceLabel `gorm:"foreignkey:InstanceID"`
@@ -189,12 +206,35 @@ type CfResponse struct {
 }
 
 type ProvisionParams struct {
-	Patterns []string          `json:"patterns"`
-	Tags     map[string]string `json:"tags"`
+	Patterns  []string          `json:"patterns"`
+	Tags      map[string]string `json:"tags"`
+	UseTLS    bool              `json:"use_tls"`
+	DrainType *DrainType        `json:"drain_type"`
 }
 
-type BindParams struct {
-	UseTLS bool `json:"use_tls"`
+type DrainType string
+
+func (dt *DrainType) UnmarshalJSON(b []byte) error {
+	var dtStr string
+	err := json.Unmarshal(b, &dtStr)
+	if err != nil {
+		return err
+	}
+	dtStr = strings.ToLower(dtStr)
+	*dt = DrainType(dtStr)
+	switch dtStr {
+	case "":
+		return nil
+	case "logs":
+		return nil
+	case "metrics":
+		return nil
+	case "all":
+		return nil
+	default:
+		return fmt.Errorf("Only drain_type `metrics` or `logs` or `all` or empty value is allowed (which means only logs)")
+	}
+	return nil
 }
 
 type Patterns []Pattern

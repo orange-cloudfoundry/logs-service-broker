@@ -55,7 +55,7 @@ func (b LoghostBroker) Services(ctx context.Context) ([]domain.Service, error) {
 }
 
 func (b LoghostBroker) Provision(_ context.Context, instanceID string, details domain.ProvisionDetails, asyncAllowed bool) (domain.ProvisionedServiceSpec, error) {
-	syslogAddr, err := b.foundSyslogWriter(details.PlanID)
+	syslogAddr, err := model.SyslogAddresses(b.config.SyslogAddresses).FoundSyslogWriter(details.PlanID)
 	if err != nil {
 		return domain.ProvisionedServiceSpec{}, err
 	}
@@ -64,7 +64,10 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 	json.Unmarshal([]byte(details.RawContext), &ctx)
 
 	var params model.ProvisionParams
-	json.Unmarshal(details.RawParameters, &params)
+	err = json.Unmarshal(details.RawParameters, &params)
+	if err != nil {
+		return domain.ProvisionedServiceSpec{}, fmt.Errorf("Error when loading params: %s", err.Error())
+	}
 
 	tags := syslogAddr.Tags
 	if tags == nil {
@@ -73,6 +76,10 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 
 	for k, v := range params.Tags {
 		tags[k] = v
+	}
+	drainType := syslogAddr.DefaultDrainType
+	if params.DrainType != nil && *params.DrainType != "" {
+		drainType = *params.DrainType
 	}
 	patterns := append(syslogAddr.Patterns, params.Patterns...)
 	b.db.Create(&model.InstanceParam{
@@ -85,18 +92,11 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 		SourceLabels: model.MapToSourceLabels(syslogAddr.SourceLabels),
 		Tags:         model.MapToLabels(tags),
 		CompanyID:    syslogAddr.CompanyID,
+		UseTls:       params.UseTLS || b.config.PreferTLS,
+		DrainType:    model.DrainType(strings.ToLower(string(drainType))),
 		Revision:     0,
 	})
 	return domain.ProvisionedServiceSpec{}, nil
-}
-
-func (b LoghostBroker) foundSyslogWriter(planIDOrName string) (model.SyslogAddress, error) {
-	for _, addr := range b.config.SyslogAddresses {
-		if addr.ID == planIDOrName || addr.Name == planIDOrName {
-			return addr, nil
-		}
-	}
-	return model.SyslogAddress{}, fmt.Errorf("Cannot found syslog writer for plan id or name '%s'.", planIDOrName)
 }
 
 func (b LoghostBroker) Deprovision(ctx context.Context, instanceID string, details domain.DeprovisionDetails, asyncAllowed bool) (domain.DeprovisionServiceSpec, error) {
@@ -114,9 +114,6 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	var ctx model.ContextBind
 	json.Unmarshal([]byte(details.RawContext), &ctx)
 
-	var params model.BindParams
-	json.Unmarshal(details.RawParameters, &params)
-
 	b.db.Order("revision desc").First(&instanceParam, "instance_id = ?", instanceID)
 	if instanceParam.InstanceID == "" {
 		return domain.Binding{}, fmt.Errorf("instance id '%s' not found", instanceID)
@@ -133,15 +130,22 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 		AppID:      appGuid,
 	})
 
-	url, _ := url.Parse(b.config.SyslogDrainURL)
-	domainURL := url.Host
+	syslogDrainURl := b.genUrl(instanceParam, bindingID)
+	return domain.Binding{
+		SyslogDrainURL: syslogDrainURl,
+	}, nil
+}
+
+func (b LoghostBroker) genUrl(instanceParam model.InstanceParam, bindingID string) string {
+	urlSyslog, _ := url.Parse(b.config.SyslogDrainURL)
+	domainURL := urlSyslog.Host
 	scheme := "http"
 	port := b.config.Port
-	if (b.config.PreferTLS || params.UseTLS) && b.config.HasTLS() {
+	if instanceParam.UseTls && b.config.HasTLS() {
 		scheme = "https"
 		port = b.config.TLSPort
 	}
-	if url.Host == "" {
+	if urlSyslog.Host == "" {
 		domainURL = b.config.SyslogDrainURL
 	}
 	domainURL = strings.Split(domainURL, ":")[0]
@@ -150,10 +154,13 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	if b.config.VirtualHost {
 		syslogDrainURl = fmt.Sprintf("%s://%s.%s:%d/", scheme, bindingID, domainURL, port)
 	}
-	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, instanceParam.Revision)
-	return domain.Binding{
-		SyslogDrainURL: syslogDrainURl,
-	}, nil
+	queryValues := make(url.Values)
+	queryValues.Add(model.RevKey, fmt.Sprint(instanceParam.Revision))
+	if instanceParam.DrainType != "" {
+		queryValues.Add(model.DrainTypeKey, string(instanceParam.DrainType))
+	}
+	syslogDrainURl += fmt.Sprintf("?%s", queryValues.Encode())
+	return syslogDrainURl
 }
 
 func (b LoghostBroker) Unbind(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, asyncAllowed bool) (domain.UnbindSpec, error) {
@@ -162,7 +169,7 @@ func (b LoghostBroker) Unbind(ctx context.Context, instanceID, bindingID string,
 }
 
 func (b LoghostBroker) Update(_ context.Context, instanceID string, details domain.UpdateDetails, asyncAllowed bool) (domain.UpdateServiceSpec, error) {
-	syslogAddr, err := b.foundSyslogWriter(details.PlanID)
+	syslogAddr, err := model.SyslogAddresses(b.config.SyslogAddresses).FoundSyslogWriter(details.PlanID)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, err
 	}
@@ -177,8 +184,10 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 	json.Unmarshal([]byte(details.RawContext), &ctx)
 
 	var params model.ProvisionParams
-	json.Unmarshal(details.RawParameters, &params)
-
+	err = json.Unmarshal(details.RawParameters, &params)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, fmt.Errorf("Error when loading params: %s", err.Error())
+	}
 	tags := syslogAddr.Tags
 	if tags == nil {
 		tags = make(map[string]string)
@@ -191,6 +200,10 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 	b.db.Delete(model.Label{}, "instance_id = ?", instanceID)
 	b.db.Delete(model.Pattern{}, "instance_id = ?", instanceID)
 
+	drainType := syslogAddr.DefaultDrainType
+	if params.DrainType != nil && *params.DrainType != "" {
+		drainType = *params.DrainType
+	}
 	patterns := append(syslogAddr.Patterns, params.Patterns...)
 	b.db.Create(&model.InstanceParam{
 		InstanceID: instanceID,
@@ -201,6 +214,8 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 		Patterns:   model.ListToPatterns(patterns),
 		Tags:       model.MapToLabels(tags),
 		CompanyID:  syslogAddr.CompanyID,
+		UseTls:     params.UseTLS || b.config.PreferTLS,
+		DrainType:  model.DrainType(strings.ToLower(string(drainType))),
 		Revision:   instanceParam.Revision + 1,
 	})
 	return domain.UpdateServiceSpec{}, nil
@@ -218,7 +233,7 @@ func (b LoghostBroker) GetInstance(_ context.Context, instanceID string) (domain
 		return domain.GetInstanceDetailsSpec{}, fmt.Errorf("instance id '%s' not found", instanceID)
 	}
 
-	syslogAddr, err := b.foundSyslogWriter(instanceParam.SyslogName)
+	syslogAddr, err := model.SyslogAddresses(b.config.SyslogAddresses).FoundSyslogWriter(instanceParam.SyslogName)
 	if err != nil {
 		return domain.GetInstanceDetailsSpec{}, err
 	}
@@ -244,24 +259,7 @@ func (b LoghostBroker) GetBinding(_ context.Context, instanceID, bindingID strin
 	b.db.Set("gorm:auto_preload", true).Order("revision desc").First(&instanceParam, "instance_id = ?", logData.InstanceID)
 	logData.InstanceParam = instanceParam
 
-	urlDrain, _ := url.Parse(b.config.SyslogDrainURL)
-	domainURL := urlDrain.Host
-	scheme := "http"
-	port := b.config.Port
-	if b.config.PreferTLS && b.config.HasTLS() {
-		scheme = "https"
-		port = b.config.TLSPort
-	}
-	if urlDrain.Host == "" {
-		domainURL = b.config.SyslogDrainURL
-	}
-	domainURL = strings.Split(domainURL, ":")[0]
-
-	syslogDrainURl := fmt.Sprintf("%s://%s:%d/%s", scheme, domainURL, port, bindingID)
-	if b.config.VirtualHost {
-		syslogDrainURl = fmt.Sprintf("%s://%s.%s:%d/", scheme, bindingID, domainURL, port)
-	}
-	syslogDrainURl += fmt.Sprintf("?%s=%d", model.RevKey, logData.InstanceParam.Revision)
+	syslogDrainURl := b.genUrl(instanceParam, bindingID)
 	return domain.GetBindingSpec{
 		SyslogDrainURL: syslogDrainURl,
 	}, nil
