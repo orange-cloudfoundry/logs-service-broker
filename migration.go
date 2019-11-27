@@ -92,17 +92,18 @@ var gormMigration = []*Migration{
 			if err != nil {
 				return err
 			}
-			if config.DisableDrainType {
-				return nil
-			}
 			ists := make([]model.InstanceParam, 0)
 			db.Find(&ists)
 			addrs := model.SyslogAddresses(config.SyslogAddresses)
 			for _, ist := range ists {
 				addr, _ := addrs.FoundSyslogWriter(ist.SyslogName)
+				drainType := addr.DefaultDrainType
+				if config.DisableDrainType {
+					drainType = ""
+				}
 				db.Table("instance_params").
 					Where("instance_id = ? and revision = ?", ist.InstanceID, ist.Revision).
-					Updates(map[string]interface{}{"use_tls": config.PreferTLS, "drain_type": addr.DefaultDrainType})
+					Updates(map[string]interface{}{"use_tls": config.PreferTLS, "drain_type": drainType})
 			}
 			return nil
 		},

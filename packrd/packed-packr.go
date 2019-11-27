@@ -47,8 +47,7 @@ var _ = func() error {
 		b.SetResolver("js/materialize.js", packr.Pointer{ForwardBox: gk, ForwardPath: "286dfa13625410dbae8cbc05452f846f"})
 		b.SetResolver("js/materialize.min.js", packr.Pointer{ForwardBox: gk, ForwardPath: "cfce782ad0a5779a94e98ca298d9dd70"})
 		b.SetResolver("js/prism.js", packr.Pointer{ForwardBox: gk, ForwardPath: "0166cc0dad24e3082138f882cc988fd4"})
-		}()
-
+	}()
 
 	func() {
 		b := packr.New("userdocs_templates", "./templates")
@@ -57,7 +56,7 @@ var _ = func() error {
 		b.SetResolver("patterns.md", packr.Pointer{ForwardBox: gk, ForwardPath: "6f7c8bca122ec94887c3bd36a53b7bf5"})
 		b.SetResolver("plan.md", packr.Pointer{ForwardBox: gk, ForwardPath: "9545c60afa94dd2d2118241df1abe502"})
 		b.SetResolver("service-instance.md", packr.Pointer{ForwardBox: gk, ForwardPath: "d636648a8cf258bdd2423571f1575ef1"})
-		}()
+	}()
 
 	return nil
 }()
