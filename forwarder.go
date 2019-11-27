@@ -16,16 +16,26 @@ import (
 )
 
 type Forwarder struct {
-	sw     map[string]io.WriteCloser
-	cacher *MetaCacher
-	parser *parser.Parser
+	sw                   map[string]io.WriteCloser
+	cacher               *MetaCacher
+	parser               *parser.Parser
+	allowedHost          string
+	disallowFromExternal bool
 }
 
-func NewForwarder(cacher *MetaCacher, writers map[string]io.WriteCloser, parsingKeys []model.ParsingKey) *Forwarder {
+func NewForwarder(
+	cacher *MetaCacher,
+	writers map[string]io.WriteCloser,
+	parsingKeys []model.ParsingKey,
+	allowedHost string,
+	disallowFromExternal bool,
+) *Forwarder {
 	return &Forwarder{
-		sw:     writers,
-		cacher: cacher,
-		parser: parser.NewParser(parsingKeys),
+		sw:                   writers,
+		cacher:               cacher,
+		parser:               parser.NewParser(parsingKeys),
+		allowedHost:          allowedHost,
+		disallowFromExternal: disallowFromExternal,
 	}
 }
 
@@ -108,8 +118,23 @@ func (f Forwarder) foundWriter(writerName string) (io.WriteCloser, error) {
 	return w, nil
 }
 
-func (f Forwarder) ForwardHandler(w http.ResponseWriter, r *http.Request) {
+func (f Forwarder) isAuthorized(r *http.Request) bool {
+	if !f.disallowFromExternal {
+		return true
+	}
+	host := strings.Split(r.Host, ":")[0]
+	return host == f.allowedHost
+}
+
+func (f Forwarder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+
+	if !f.isAuthorized(r) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
+		return
+	}
+
 	v := mux.Vars(r)
 
 	var bindingId string

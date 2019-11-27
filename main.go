@@ -12,12 +12,14 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/gautocloud"
 	_ "github.com/cloudfoundry-community/gautocloud/connectors/databases/gorm"
+	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/o1egl/gormrus"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/syslog"
+	"github.com/orange-cloudfoundry/logs-service-broker/userdocs"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -118,8 +120,16 @@ func boot() error {
 	}
 	go c.Cleaner()
 
-	f := NewForwarder(c, sw, config.ParsingKeys)
+	urlSyslog, _ := url.Parse(config.SyslogDrainURL)
+	allowedDomain := urlSyslog.Host
+	if urlSyslog.Host == "" {
+		allowedDomain = config.SyslogDrainURL
+	}
+	allowedDomain = strings.Split(allowedDomain, ":")[0]
+
+	forwarder := NewForwarder(c, sw, config.ParsingKeys, allowedDomain, config.DisallowLogsFromExternal)
 	broker := NewLoghostBroker(db, c, config)
+	userdoc := userdocs.NewUserDoc(db, config)
 
 	lag := lager.NewLogger("broker")
 	lag.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
@@ -134,6 +144,12 @@ func boot() error {
 	}).Handler(brokerHandler)
 	r.Handle("/metrics", promhttp.Handler())
 
+	boxAsset := packr.New("userdocs_assets", "./userdocs/assets")
+	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(boxAsset)))
+
+	r.Handle("/docs", userdoc)
+	r.Handle("/docs/{instanceId}", userdoc)
+
 	if config.VirtualHost {
 		url, err := url.Parse(config.SyslogDrainURL)
 		if err != nil {
@@ -145,10 +161,10 @@ func boot() error {
 				return false
 			}
 			return strings.TrimSuffix(req.Host, url.Hostname()) != ""
-		}).Handler(http.HandlerFunc(f.ForwardHandler))
+		}).Handler(forwarder)
 	}
 
-	r.HandleFunc("/{bindingId}", f.ForwardHandler)
+	r.Handle("/{bindingId}", forwarder)
 
 	if !config.NotExitWhenConnFailed {
 		go checkDbConnection(db)

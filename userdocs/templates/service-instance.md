@@ -1,0 +1,20 @@
+You are using plan [{{ title .InstanceParam.SyslogName }}](#{{ slug .InstanceParam.SyslogName}}){{ with .InstanceParam.DrainType}} 
+and your are draining logs of type `{{ . }}`{{end}}{{ with .InstanceParam.UseTls }} with tls activated{{ end }}.
+
+You have actually **{{ len .LogMetadatas }}** apps bound to this service.
+
+Your service is actually the {{ if .InstanceParam.Revision }}{{ .InstanceParam.Revision }}{{else}}first{{ end }} revision.
+
+{{- with .InstanceParam.Tags }}
+### Your current tags
+{{- range . }}
+- **{{ .Key }}**: `{{ .Value }}`
+{{ end }}
+{{ end -}}
+
+{{- with .InstanceParam.Patterns }}
+### Your current patterns:
+{{- range . }}
+- `{{ .Pattern }}`
+{{ end }}
+{{ end -}}

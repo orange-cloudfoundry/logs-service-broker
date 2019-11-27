@@ -1,0 +1,233 @@
+/*
+  Theme Name: Materio
+  Theme URL: -
+  Author: oprns
+  Author URI: -
+  Description: Onepage Responsive HTML Mobile App Landing Page
+  Version: 1.0
+*/
+/* Table of contents
+---------------------------------------------------------------------------------------
+
+0. Global Styles
+1. Jumbotron
+2. Preloder
+3. Features
+4. Tabs
+5. Screenshots
+6. Reviews
+7. Plans
+8. About
+9. Team
+10. FAQ's
+11. News letter Subscribe
+12. footer
+13. Customizer
+
+*/
+/* global styles
+---------------------------------------------------------------------------------------*/
+body {
+    overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 300;
+    text-align: center;
+}
+
+h3 {
+    text-align: left;
+    color: #50BE87;
+    font-size: 1.5rem;
+    line-height: 1.2em;
+    font-weight: 100;
+}
+
+.wrapper .container {
+    padding: 0;
+    width: 100%;
+    max-width: initial;
+}
+
+.row {
+    margin-bottom: 0;
+}
+
+.wrapper .section {
+    padding-left: 150px;
+    padding-right: 150px;
+}
+
+code {
+    background-color: #eee;
+}
+
+h2 {
+    text-align: Left;
+    font-size: 2rem;
+    line-height: 1.6em;
+    font-weight: 100;
+    color: #FF7900;
+}
+
+nav {
+    background-color: #ed005a;
+    position: relative;
+}
+
+.text-semi-bold {
+    font-weight: 600;
+}
+
+.white-text {
+    color: #fff !important;
+}
+
+a {
+    color: #4BB4E6;
+}
+
+a:hover {
+    color: black;
+}
+
+a.btn:hover {
+    color: #4BB4E6;
+}
+
+ul.table-of-contents {
+    padding-left: 0;
+    list-style-type: none;
+}
+
+ul.table-of-contents > li {
+    list-style-type: none;
+}
+
+.preloader {
+    position: relative;
+    min-height: 100vh;
+    min-width: 100vh;
+    background-color: white;
+    z-index: 5000;
+}
+
+
+/* brand
+*****************************/
+.brand-green {
+    background-color: #50BE87 !important;
+}
+
+.brand-green-text {
+    color: #50BE87 !important;
+}
+
+.brand-orange {
+    background-color: #FF7900 !important;
+}
+
+.brand-orange-text {
+    color: #FF7900 !important;
+}
+
+.brand-grey {
+    background-color: #8F8F8F !important;
+}
+
+.brand-grey-text {
+    color: #8F8F8F !important;
+}
+
+.brand-gray {
+    background-color: #8F8F8F !important;
+}
+
+.brand-gray-text {
+    color: #8F8F8F !important;
+}
+
+.brand-blue {
+    background-color: #4BB4E6 !important;
+}
+
+.brand-blue-text {
+    color: #4BB4E6 !important;
+}
+
+.spinner-brand-blue-only {
+    border-color: #4BB4E6;
+}
+
+.brand-pink {
+    background-color: #FFB4E6 !important;
+}
+
+.brand-pink-text {
+    color: #FFB4E6 !important;
+}
+
+.brand-purple {
+    background-color: #A885D8 !important;
+}
+
+.brand-purple-text {
+    color: #A885D8 !important;
+}
+
+.brand-yellow {
+    background-color: #FFD200 !important;
+}
+
+.brand-yellow-text {
+    color: #FFD200 !important;
+}
+
+/* dl
+****/
+#dl-dropdown a {
+    color: #FF7900;
+}
+
+/* scrollspy
+******/
+.spy-toc .table-of-contents {
+    margin-left: 5px;
+    margin-top: 55px;
+}
+
+.spy-toc .table-of-contents a {
+    color: #4BB4E6;
+}
+
+.spy-toc .table-of-contents a:hover {
+    color: #FF7900;
+}
+
+.spy-toc .table-of-contents a.active:hover,
+.spy-toc .table-of-contents a.active {
+    border-left-color: #FF7900;
+}
+
+.spy-toc .table-of-contents a.sid {
+    color: white;
+}
+
+.spy-toc .table-of-contents a[href="#your-service-definition"].active:hover,
+.spy-toc .table-of-contents a[href="#your-service-definition"].active {
+    color: #FF7900;
+}
+
+.icon-block {
+    padding: 0 15px;
+}
+
+.icon-block .material-icons {
+    font-size: inherit;
+}

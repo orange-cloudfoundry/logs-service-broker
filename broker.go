@@ -29,7 +29,10 @@ func NewLoghostBroker(db *gorm.DB, cacher *MetaCacher, config model.Config) *Log
 }
 
 func (b LoghostBroker) Services(ctx context.Context) ([]domain.Service, error) {
-
+	docsUrl := ""
+	if b.config.ExternalUrl != "" {
+		docsUrl = fmt.Sprintf("%s/docs", strings.TrimSuffix(b.config.ExternalUrl, "/"))
+	}
 	return []domain.Service{{
 		ID:          serviceId,
 		Name:        "logs",
@@ -40,7 +43,7 @@ func (b LoghostBroker) Services(ctx context.Context) ([]domain.Service, error) {
 		Metadata: &domain.ServiceMetadata{
 			DisplayName:         "logs",
 			LongDescription:     "Drain apps logs to a or multiple syslog server(s).",
-			DocumentationUrl:    "",
+			DocumentationUrl:    docsUrl,
 			SupportUrl:          "",
 			ImageUrl:            "",
 			ProviderDisplayName: "Orange",
@@ -96,7 +99,9 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 		DrainType:    model.DrainType(strings.ToLower(string(drainType))),
 		Revision:     0,
 	})
-	return domain.ProvisionedServiceSpec{}, nil
+	return domain.ProvisionedServiceSpec{
+		DashboardURL: b.genDashboardUrl(instanceID),
+	}, nil
 }
 
 func (b LoghostBroker) Deprovision(ctx context.Context, instanceID string, details domain.DeprovisionDetails, asyncAllowed bool) (domain.DeprovisionServiceSpec, error) {
@@ -134,6 +139,13 @@ func (b LoghostBroker) Bind(_ context.Context, instanceID, bindingID string, det
 	return domain.Binding{
 		SyslogDrainURL: syslogDrainURl,
 	}, nil
+}
+
+func (b LoghostBroker) genDashboardUrl(instanceId string) string {
+	if b.config.ExternalUrl == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/docs/%s", strings.TrimSuffix(b.config.ExternalUrl, "/"), instanceId)
 }
 
 func (b LoghostBroker) genUrl(instanceParam model.InstanceParam, bindingID string) string {
@@ -218,7 +230,9 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 		DrainType:  model.DrainType(strings.ToLower(string(drainType))),
 		Revision:   instanceParam.Revision + 1,
 	})
-	return domain.UpdateServiceSpec{}, nil
+	return domain.UpdateServiceSpec{
+		DashboardURL: b.genDashboardUrl(instanceID),
+	}, nil
 }
 
 func (LoghostBroker) LastOperation(ctx context.Context, instanceID string, details domain.PollDetails) (domain.LastOperation, error) {
