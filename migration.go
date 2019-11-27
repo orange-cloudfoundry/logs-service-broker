@@ -92,6 +92,9 @@ var gormMigration = []*Migration{
 			if err != nil {
 				return err
 			}
+			if config.DisableDrainType {
+				return nil
+			}
 			ists := make([]model.InstanceParam, 0)
 			db.Find(&ists)
 			addrs := model.SyslogAddresses(config.SyslogAddresses)

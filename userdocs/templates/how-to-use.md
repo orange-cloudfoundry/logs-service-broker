@@ -31,9 +31,10 @@ $ cf bind-service <my-app> my-log-service
 When creating or updating service thoses parameters can be passed:
 - `tags` (*Map key value*): Define your tags (see tags formatting in [tags formatting section](#tags-formatting))
 - `patterns` (*Slice of string*): Define your patter (see patterns and grok available patterns in [patterns formatting section](#patterns-formatting))
-- `drain_type` (*can be `logs` (similar to empty), `metrics` or `all`*): Allow metrics or both logs and metrics to be send in logservice.
-(**Warning** Metrics should be use when you have not prometheus, a lot of dashboards are already available on it)
+{{ if not .Config.DisableDrainType }}- `drain_type` (*can be `logs` (similar to empty), `metrics` or `all`*): Allow metrics or both logs and metrics to be send in logservice.
+(**Warning** Metrics should be use when you have not prometheus, a lot of dashboards are already available on it){{ end }}
 {{ if not .Config.PreferTLS }}- `use_tls` (*boolean*): Set to `true` for making cloud foundry send logs encrypted to logservice{{end}}
+
 
 ## Tags formatting
 
@@ -67,6 +68,8 @@ In addition you can use those functions for helping you:
 - `ret access.to.value.from.key`: Get the value of a key in a map by exploring it in dot format, e.g: 
 this `{"foo": {"exists": ["my-value"]}` can be take by doing `ret "foo.exists.0"`
 
+**tips**: on `ret` function you can use special key `first` and `last` on a slice for respectively the first value of a slice or the last one.
+
 ## Patterns formatting
 
 Patterns use grok format which is simple to use. Its goal is too parse logs as you have asked and place it in structured data.
@@ -91,7 +94,46 @@ for example:
 }
 ```
 
-
 You can see all pre-provisioned patterns [here](#pre-provisioned-patterns).
 
+### Special key/value pairs
+
+Some of key/value pair have special effect, those pairs defined will be use as parsing value until there is nothing to parse anymore.
+
+These key/value pairs are:
+- `@message`
+- `@raw`
+- `text`
+{{- with .Config.ParsingKeys }}
+{{- range . }}
+- `{{ .Name }}`{{ with .Hide }} (*this key will be hidden from parsed log*){{end}}
+{{- end }}
+{{ end -}}
+
+It always good to set one of this key in your pattern.
+
+Example:
+
+I defined these patterns:
+```json
+{
+  "patterns": [
+    "my message %{GREEDYDATA:@message}",
+    "%{final text:@final}"
+  ]
+}
+```
+
+With this log message:
+```bash
+my message some data final text
+```
+
+Will be parsed as follow:
+```json
+{
+  "@message": "some data final text",
+  "@final": "final text"
+}
+```
 

@@ -30,6 +30,7 @@ type Config struct {
 	PreferTLS                bool            `cloud:"prefer_tls"`
 	ExternalUrl              string          `cloud:"external_url"`
 	DisallowLogsFromExternal bool            `cloud:"disallow_logs_from_external"`
+	DisableDrainType         bool            `cloud:"disable_drain_type"`
 	BrokerUsername           string          `cloud:"broker_username"`
 	BrokerPassword           string          `cloud:"broker_password"`
 	SyslogDrainURL           string          `cloud:"syslog_drain_url"`

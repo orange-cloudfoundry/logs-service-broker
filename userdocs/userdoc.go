@@ -50,9 +50,10 @@ func (d UserDoc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, ok := v["instanceId"]; ok {
 		instanceId = v["instanceId"]
 	}
-	instanceParam := &model.InstanceParam{}
+	var instanceParam *model.InstanceParam
 	logMetadatas := make([]model.LogMetadata, 0)
 	if instanceId != "" {
+		instanceParam = &model.InstanceParam{}
 		d.db.Set("gorm:auto_preload", true).Order("revision desc").First(instanceParam, "instance_id = ?", instanceId)
 		d.db.Find(&logMetadatas, "instance_id = ?", instanceId)
 

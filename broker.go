@@ -84,6 +84,9 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 	if params.DrainType != nil && *params.DrainType != "" {
 		drainType = *params.DrainType
 	}
+	if b.config.DisableDrainType {
+		drainType = ""
+	}
 	patterns := append(syslogAddr.Patterns, params.Patterns...)
 	b.db.Create(&model.InstanceParam{
 		InstanceID:   instanceID,
@@ -215,6 +218,9 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 	drainType := syslogAddr.DefaultDrainType
 	if params.DrainType != nil && *params.DrainType != "" {
 		drainType = *params.DrainType
+	}
+	if b.config.DisableDrainType {
+		drainType = ""
 	}
 	patterns := append(syslogAddr.Patterns, params.Patterns...)
 	b.db.Create(&model.InstanceParam{
