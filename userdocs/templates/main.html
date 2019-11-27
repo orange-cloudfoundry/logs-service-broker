@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
-    <title>Starter Template - Materialize</title>
+    <title>Logservice - Doc</title>
 
     <!-- CSS  -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -23,14 +23,10 @@
         <div class="container brand-gray scrollspy" id="your-service-definition">
             <div class="section">
                 <div class="row">
-                    <div class="col s12">
-                        <h1 class="white-text">Your service definition</h1>
-                    </div>
+                    <h1 class="white-text">Your service definition</h1>
                 </div>
                 <div class="row">
-                    <div class="col s12">
-                        {{ parse "service-instance.md" . | markdown }}
-                    </div>
+                    {{ parse "service-instance.md" . | markdown }}
                 </div>
             </div>
         </div>
@@ -116,7 +112,7 @@
     <div class="container scrollspy" id="pre-provisioned-patterns">
         <div class="section">
             <div class="row">
-                <h1>Pre-provisioned patterns</h1>
+                <h1>Provisioned patterns</h1>
             </div>
             <div class="row">
                 {{ rawContent "patterns.md" | markdown }}
@@ -132,7 +128,7 @@
         <li><a href="#what-is-logservice">What is logservice ?</a></li>
         <li><a href="#how-to-use">How to use ?</a></li>
         <li><a href="#available-plans">Available plans</a></li>
-        <li><a href="#pre-provisioned-patterns">Pre-provisioned patterns</a></li>
+        <li><a href="#pre-provisioned-patterns">Provisioned patterns</a></li>
     </ul>
 </div>
 

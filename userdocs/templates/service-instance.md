@@ -8,13 +8,13 @@ Your service is actually the {{ if .InstanceParam.Revision }}{{ .InstanceParam.R
 {{- with .InstanceParam.Tags }}
 ### Your current tags
 {{- range . }}
-- **{{ .Key }}**: `{{ .Value }}`
-{{ end }}
+- **{{ .Key }}**: `{{ safe .Value }}`
+{{- end }}
 {{ end -}}
 
 {{- with .InstanceParam.Patterns }}
 ### Your current patterns:
 {{- range . }}
-- `{{ .Pattern }}`
-{{ end }}
+- `{{ safe .Pattern }}`
+{{- end }}
 {{ end -}}

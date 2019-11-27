@@ -26,6 +26,15 @@ $ cf bind-service <my-app> my-log-service
 
 **Note**: Unbinding is necessary for logservice to consider your new changes
 
+## Available parameters
+
+When creating or updating service thoses parameters can be passed:
+- `tags` (*Map key value*): Define your tags (see tags formatting in [tags formatting section](#tags-formatting))
+- `patterns` (*Slice of string*): Define your patter (see patterns and grok available patterns in [patterns formatting section](#patterns-formatting))
+- `drain_type` (*can be `logs` (similar to empty), `metrics` or `all`*): Allow metrics or both logs and metrics to be send in logservice.
+(**Warning** Metrics should be use when you have not prometheus, a lot of dashboards are already available on it)
+{{ if not .Config.PreferTLS }}- `use_tls` (*boolean*): Set to `true` for making cloud foundry send logs encrypted to logservice{{end}}
+
 ## Tags formatting
 
 Tags can be dynamically be formatted by using golang templating:

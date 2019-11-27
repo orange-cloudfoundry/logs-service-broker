@@ -1,10 +1,10 @@
 ## {{ title .Name }}
 
-{{ .Description }}
+{{ safe .Description }}
 
-{{ join .Bullets "\n" }}
+{{ safe (join .Bullets "\n") }}
 
-{{- with .DefaultDrainType }}
+{{ with .DefaultDrainType }}
 **Default log drain type**: `{{ . }}`
 {{ end }}
 
@@ -16,13 +16,13 @@
 {{- with .Tags }}
 ### Default tags
 {{- range $key, $value := . }}
-- **{{ $key }}**: `{{ $value }}`
-{{ end }}
+- **{{ $key }}**: `{{ safe $value }}`
+{{- end }}
 {{ end -}}
 
 {{- with .Patterns }}
 ### Default patterns:
 {{- range . }}
-- `{{ . }}`
-{{ end }}
+- `{{ safe . }}`
+{{- end }}
 {{ end -}}
