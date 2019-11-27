@@ -182,6 +182,9 @@ func (p Parser) ParseHostFromMessage(message []byte) (org, space, app string) {
 
 func isMetrics(pMes *rfc5424.SyslogMessage) bool {
 	structData := *pMes.StructuredData()
+	if structData == nil {
+		return false
+	}
 	if _, ok := structData[gaugeStructuredDataID]; ok {
 		return true
 	}
