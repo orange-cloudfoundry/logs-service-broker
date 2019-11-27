@@ -253,8 +253,9 @@ func (b LoghostBroker) GetInstance(_ context.Context, instanceID string) (domain
 	}
 
 	return domain.GetInstanceDetailsSpec{
-		PlanID:    syslogAddr.ID,
-		ServiceID: serviceId,
+		PlanID:       syslogAddr.ID,
+		ServiceID:    serviceId,
+		DashboardURL: b.genDashboardUrl(instanceID),
 		Parameters: model.ProvisionParams{
 			Tags:     model.Labels(instanceParam.Tags).ToMap(),
 			Patterns: model.Patterns(instanceParam.Patterns).ToList(),
