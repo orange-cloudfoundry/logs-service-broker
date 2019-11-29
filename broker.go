@@ -68,7 +68,7 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 
 	var params model.ProvisionParams
 	err = json.Unmarshal(details.RawParameters, &params)
-	if err != nil {
+	if err != nil && len(details.RawParameters) > 0 {
 		return domain.ProvisionedServiceSpec{}, fmt.Errorf("Error when loading params: %s", err.Error())
 	}
 
@@ -200,7 +200,7 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 
 	var params model.ProvisionParams
 	err = json.Unmarshal(details.RawParameters, &params)
-	if err != nil {
+	if err != nil && len(details.RawParameters) > 0 {
 		return domain.UpdateServiceSpec{}, fmt.Errorf("Error when loading params: %s", err.Error())
 	}
 	tags := syslogAddr.Tags
