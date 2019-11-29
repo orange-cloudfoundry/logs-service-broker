@@ -100,7 +100,7 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 		CompanyID:    syslogAddr.CompanyID,
 		UseTls:       params.UseTLS || b.config.PreferTLS,
 		DrainType:    model.DrainType(strings.ToLower(string(drainType))),
-		Revision:     0,
+		Revision:     1,
 	})
 	return domain.ProvisionedServiceSpec{
 		DashboardURL: b.genDashboardUrl(instanceID),

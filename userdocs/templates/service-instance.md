@@ -3,7 +3,7 @@ and your are draining logs of type `{{ . }}`{{end}}{{ with .InstanceParam.UseTls
 
 You have actually **{{ len .LogMetadatas }}** apps bound to this service.
 
-Your service is actually the {{ if .InstanceParam.Revision }}{{ .InstanceParam.Revision }}{{else}}first{{ end }} revision.
+Your service is actually the {{ .InstanceParam.Revision }} revision.
 
 {{- with .InstanceParam.Tags }}
 ### Your current tags
