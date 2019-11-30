@@ -44,7 +44,7 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 	data["@input"] = "syslog"
 	data["@type"] = "LogMessage"
 	data["@timestamp"] = *pMes.Timestamp()
-	if pMes.Message() != nil && strings.TrimSpace(*pMes.Message()) == "" {
+	if pMes.Message() != nil && strings.TrimSpace(*pMes.Message()) != "" {
 		data["@level"] = "INFO"
 		data["@message"] = *pMes.Message()
 	}
