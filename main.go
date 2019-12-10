@@ -100,6 +100,15 @@ func boot() error {
 	}
 	migrations := Migrations{Config: config, Migrations: gormMigration}
 	migrate := gormigrate.New(db, gormigrate.DefaultOptions, migrations.ToGormMigrate())
+	migrate.InitSchema(func(db *gorm.DB) error {
+		return db.AutoMigrate(
+			&model.LogMetadata{},
+			&model.InstanceParam{},
+			&model.Patterns{},
+			&model.Label{},
+			&model.SourceLabel{},
+		).Error
+	})
 	if err := migrate.Migrate(); err != nil {
 		log.Fatalf("Could not migrate: %v", err)
 	}

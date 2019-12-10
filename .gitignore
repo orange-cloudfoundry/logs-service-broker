@@ -3,4 +3,4 @@
 /manifest.yml
 /logs-service-broker
 /*.sql
-/*.db
+/*.db*

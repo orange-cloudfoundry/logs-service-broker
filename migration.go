@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	log "github.com/sirupsen/logrus"
@@ -40,13 +42,20 @@ var gormMigration = []*Migration{
 	{
 		ID: "init",
 		Migrate: func(db *gorm.DB, config model.Config) error {
-			db.AutoMigrate(&model.SourceLabel{})
-			err := migrateLabels(db, config)
+			fmt.Println("toto")
+			err := db.AutoMigrate(&model.SourceLabel{}).Error
+			if err != nil {
+				return err
+			}
+			err = migrateLabels(db, config)
 			if err != nil {
 				return err
 			}
 			labelsMigrated = true
-			db.AutoMigrate(&model.LogMetadata{}, &model.InstanceParam{}, &model.Patterns{}, &model.Label{})
+			err = db.AutoMigrate(&model.LogMetadata{}, &model.InstanceParam{}, &model.Patterns{}, &model.Label{}).Error
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 		Rollback: func(db *gorm.DB, config model.Config) error {
