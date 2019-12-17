@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -61,6 +62,12 @@ func (f Forwarder) Forward(bindingId string, rev int, message []byte) error {
 	pLabels["plan_name"] = logData.InstanceParam.SyslogName
 
 	// catch panic to prevent exit
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.WithField("binding_id", bindingId).Error(string(debug.Stack()))
+			logsSentFailure.With(pLabels).Inc()
+		}
+	}()
 
 	timer := prometheus.NewTimer(logsSentDuration.With(pLabels))
 	defer timer.ObserveDuration()
