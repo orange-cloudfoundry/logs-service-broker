@@ -3,6 +3,7 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ArthurHlt/grok"
@@ -73,7 +74,7 @@ func NewParser(parsingKeys []model.ParsingKey) *Parser {
 		filters: []Filter{
 			&DefaultFilter{grokParser},
 			&MetricsFilter{},
-			&RtrFilter{grokParser},
+			&RtrFilter{},
 			&AppFilter{grokParser, append(parsingKeys, defaultParsingKeys...)},
 		},
 	}
@@ -195,4 +196,34 @@ func isMetrics(pMes *rfc5424.SyslogMessage) bool {
 		return true
 	}
 	return false
+}
+
+func parseInlineParams(inlineParams string) map[string]interface{} {
+	inlineParams = strings.TrimSpace(inlineParams)
+	splitParams := strings.Split(inlineParams, " ")
+	finalParams := make(map[string]interface{})
+	for _, p := range splitParams {
+		slitP := strings.SplitN(p, ":", 2)
+		if len(slitP) < 2 {
+			continue
+		}
+		k := slitP[0]
+		vStr := strings.TrimSpace(slitP[1])
+		if vStr[0] == '"' {
+			finalParams[k] = vStr[1 : len(vStr)-1]
+			continue
+		}
+		flo, err := strconv.ParseFloat(vStr, 64)
+		if err == nil {
+			finalParams[k] = flo
+			continue
+		}
+		in, err := strconv.ParseInt(vStr, 10, 64)
+		if err == nil {
+			finalParams[k] = in
+			continue
+		}
+		finalParams[k] = vStr
+	}
+	return finalParams
 }

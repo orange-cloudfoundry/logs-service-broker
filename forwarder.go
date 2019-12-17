@@ -59,6 +59,9 @@ func (f Forwarder) Forward(bindingId string, rev int, message []byte) error {
 	}
 	pLabels["instance_id"] = logData.InstanceParam.InstanceID
 	pLabels["plan_name"] = logData.InstanceParam.SyslogName
+
+	// catch panic to prevent exit
+
 	timer := prometheus.NewTimer(logsSentDuration.With(pLabels))
 	defer timer.ObserveDuration()
 
