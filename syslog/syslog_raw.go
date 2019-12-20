@@ -1,11 +1,15 @@
 package syslog
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -15,6 +19,8 @@ type Writer struct {
 	raddr    string
 	conn     serverConn
 	mu       sync.Mutex // guards conn
+	tlsConf  *tls.Config
+	inTls    bool
 }
 
 type serverConn interface {
@@ -55,12 +61,25 @@ func Dial(addr string) (*Writer, error) {
 		return nil, err
 	}
 
+	inTls := false
+	scheme := u.Scheme
+	if u.Scheme == "tcp+tls" {
+		inTls = true
+		scheme = "tcp"
+	}
+	tlsConf, err := tlsConfigFromAddr(u)
+	if err != nil {
+		return nil, err
+	}
+
 	hostname, _ := os.Hostname()
 
 	w := &Writer{
 		hostname: hostname,
-		network:  u.Scheme,
+		network:  scheme,
 		raddr:    u.Host,
+		tlsConf:  tlsConf,
+		inTls:    inTls,
 	}
 
 	err = w.connect()
@@ -68,6 +87,33 @@ func Dial(addr string) (*Writer, error) {
 		return nil, err
 	}
 	return w, err
+}
+
+func tlsConfigFromAddr(u *url.URL) (*tls.Config, error) {
+	tlsConf := &tls.Config{}
+
+	verifyParam := u.Query().Get("verify")
+	if verifyParam != "" {
+		verify, err := strconv.ParseBool(verifyParam)
+		if err != nil {
+			verify = true
+		}
+		tlsConf.InsecureSkipVerify = !verify
+	}
+
+	certPath := u.Query().Get("cert")
+	if certPath == "" {
+		return tlsConf, nil
+	}
+	b, err := ioutil.ReadFile(certPath)
+	if err != nil {
+		return nil, err
+	}
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(b)
+	tlsConf.RootCAs = pool
+
+	return tlsConf, nil
 }
 
 // connect makes a connection to the syslog server.
@@ -82,7 +128,11 @@ func (w *Writer) connect() (err error) {
 	}
 
 	var c net.Conn
-	c, err = net.Dial(w.network, w.raddr)
+	if !w.inTls {
+		c, err = net.Dial(w.network, w.raddr)
+	} else {
+		c, err = tls.Dial(w.network, w.raddr, w.tlsConf)
+	}
 	if err == nil {
 		w.conn = &netConn{conn: c}
 		if w.hostname == "" {
