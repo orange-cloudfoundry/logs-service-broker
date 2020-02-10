@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type Writer struct {
@@ -129,9 +130,9 @@ func (w *Writer) connect() (err error) {
 
 	var c net.Conn
 	if !w.inTls {
-		c, err = net.Dial(w.network, w.raddr)
+		c, err = net.DialTimeout(w.network, w.raddr, 5*time.Second)
 	} else {
-		c, err = tls.Dial(w.network, w.raddr, w.tlsConf)
+		c, err = tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second}, w.network, w.raddr, w.tlsConf)
 	}
 	if err == nil {
 		w.conn = &netConn{conn: c}
