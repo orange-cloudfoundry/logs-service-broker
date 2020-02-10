@@ -1,9 +1,10 @@
 package syslog
 
 import (
-	"github.com/hashicorp/go-multierror"
 	"io"
 	"sync"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 type MultiWriter struct {
@@ -28,7 +29,7 @@ func (t *MultiWriter) Write(b []byte) (int, error) {
 	wg.Add(len(t.mw))
 	var result error
 	for _, w := range t.mw {
-		go func() {
+		go func(w io.WriteCloser) {
 			defer wg.Done()
 			_, err := w.Write(b)
 			if err != nil {
@@ -36,7 +37,7 @@ func (t *MultiWriter) Write(b []byte) (int, error) {
 				multierror.Append(result, err)
 				mutex.Unlock()
 			}
-		}()
+		}(w)
 	}
 	wg.Wait()
 	return len(b), result
