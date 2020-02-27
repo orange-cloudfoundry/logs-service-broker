@@ -44,7 +44,7 @@ func retrieveGormDb(config model.Config) *gorm.DB {
 			db.DB().SetMaxOpenConns(config.SQLCnxMaxOpen)
 		}
 		if config.SQLCnxMaxIdle != 0 {
-			db.DB().SetMaxOpenConns(config.SQLCnxMaxIdle)
+			db.DB().SetMaxIdleConns(config.SQLCnxMaxIdle)
 		}
 		if config.SQLCnxMaxLife != "" {
 			duration, err := time.ParseDuration(config.SQLCnxMaxLife)
