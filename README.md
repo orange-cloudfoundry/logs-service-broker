@@ -249,6 +249,13 @@ User doc can be found when you have deployed logservice at http://<your logservi
 
 For now, subset of user doc can be found here: [user-doc.md](/user-doc.md)
 
+## Prometheus metrics
+
+The broker provide metrics in prometheus format on the endpoint: https://my-logservice.com/metrics .
+
+You can found dashboard for grafana here: https://github.com/orange-cloudfoundry/logservice-boshrelease/blob/master/jobs/logservice_dashboards/templates/logservice_overview.json
+And also alerts for it here: https://github.com/orange-cloudfoundry/logservice-boshrelease/blob/master/jobs/logservice_alerts/templates/logservice.alerts.yml
+
 ## Architecture in a cloud foundry context
 
 [![archi](/docs/archi.png)](/docs/archi.png)

@@ -119,10 +119,13 @@ type InstanceParam struct {
 }
 
 func (d *InstanceParam) BeforeDelete(tx *gorm.DB) (err error) {
+	if d.InstanceID == "" {
+		return nil
+	}
 	tx.Delete(Pattern{}, "instance_id = ?", d.InstanceID)
 	tx.Delete(Label{}, "instance_id = ?", d.InstanceID)
 	tx.Delete(SourceLabel{}, "instance_id = ?", d.InstanceID)
-	return
+	return nil
 }
 
 type LogMetadata struct {

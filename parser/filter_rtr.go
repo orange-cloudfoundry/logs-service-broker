@@ -12,6 +12,7 @@ import (
 
 func init() {
 	hostnameRegex := `(?P<hostname>\b(?:[0-9A-Za-z][0-9A-Za-z-]{0,62})(?:\.(?:[0-9A-Za-z][0-9A-Za-z-]{0,62}))*(\.?|\b))`
+	portRegex := `(?P<port>:[0-9]+)?`
 	timeRegex := `\[(?P<timestamp>[^\]]*)\]`
 	verbRegex := `(?P<verb>[^\s]*)`
 	pathRegex := `(?P<path>[^\s]*)`
@@ -26,8 +27,8 @@ func init() {
 	dstHostRegex := `(?P<dst_host>[0-9\.]*)`
 	dstPortRegex := `(?P<dst_port>[0-9]+)`
 	inlineParamsRegex := `(?P<params>.*)`
-	regexRtr = regexp.MustCompile(fmt.Sprintf(`^%s - %s "%s %s %s" %s %s %s "%s" "%s" "%s:%s" "%s:%s" %s`,
-		hostnameRegex, timeRegex, verbRegex, pathRegex, httpSpecRegex, statusRegex,
+	regexRtr = regexp.MustCompile(fmt.Sprintf(`^%s%s - %s "%s %s %s" %s %s %s "%s" "%s" "%s:%s" "%s:%s" %s`,
+		hostnameRegex, portRegex, timeRegex, verbRegex, pathRegex, httpSpecRegex, statusRegex,
 		reqRecRegex, bodySentRegex,
 		refererRegex, userAgentRegex,
 		srcHostRegex, srcPortRegex, dstHostRegex, dstPortRegex,

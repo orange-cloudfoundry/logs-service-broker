@@ -88,6 +88,12 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 		drainType = ""
 	}
 	patterns := append(syslogAddr.Patterns, params.Patterns...)
+
+	// clean if something exists before
+	b.db.Delete(model.Pattern{}, "instance_id = ?", instanceID)
+	b.db.Delete(model.Label{}, "instance_id = ?", instanceID)
+	b.db.Delete(model.SourceLabel{}, "instance_id = ?", instanceID)
+
 	b.db.Create(&model.InstanceParam{
 		InstanceID:   instanceID,
 		SpaceID:      ctx.SpaceGUID,
@@ -114,6 +120,7 @@ func (b LoghostBroker) Deprovision(ctx context.Context, instanceID string, detai
 	b.db.Delete(&model.InstanceParam{
 		InstanceID: instanceID,
 	}, "instance_id = ?", instanceID)
+	b.db.Delete(&model.InstanceParam{}, "instance_id = ?", instanceID)
 	return domain.DeprovisionServiceSpec{}, nil
 }
 
@@ -214,6 +221,7 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 
 	b.db.Delete(model.Label{}, "instance_id = ?", instanceID)
 	b.db.Delete(model.Pattern{}, "instance_id = ?", instanceID)
+	b.db.Delete(model.SourceLabel{}, "instance_id = ?", instanceID)
 
 	drainType := syslogAddr.DefaultDrainType
 	if params.DrainType != nil && *params.DrainType != "" {
