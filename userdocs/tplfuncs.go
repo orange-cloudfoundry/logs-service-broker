@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"gopkg.in/russross/blackfriday.v2"
+	"github.com/russross/blackfriday/v2"
 )
 
 var tplfuncs = template.FuncMap{
