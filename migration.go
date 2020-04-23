@@ -188,3 +188,33 @@ func migratePatternIfNeeded(db *gorm.DB, syslogAddrs model.SyslogAddresses) {
 	}
 	log.Info("Finished migrating patterns if needed.")
 }
+
+func migrateSourceLabelsIfNeeded(db *gorm.DB, syslogAddrs model.SyslogAddresses) {
+	log.Info("Migrating source labels if needed ...")
+	for _, syslogAddr := range syslogAddrs {
+		for key, value := range syslogAddr.SourceLabels {
+			ists := make([]model.InstanceParam, 0)
+			db.Table("instance_params i").
+				Where("i.syslog_name = ? AND ? NOT IN (?)",
+					syslogAddr.Name, key,
+					db.Table("source_labels l").Select("l.key").Where("l.instance_id = i.instance_id and l.value = ?", value).QueryExpr(),
+				).
+				Find(&ists)
+			if len(ists) == 0 {
+				continue
+			}
+
+			entry := log.WithField("syslog_name", syslogAddr.Name).WithField("source_label", key)
+			entry.Infof("Migrating %d instances to add this source_label", len(ists))
+			for _, ist := range ists {
+				db.Where("instance_id = ? and key = ?", ist.InstanceID, key).Delete(model.SourceLabel{})
+				db.Create(&model.SourceLabel{
+					Key:        key,
+					Value:      value,
+					InstanceID: ist.InstanceID,
+				})
+			}
+		}
+	}
+	log.Info("Finished migrating source labels if needed.")
+}

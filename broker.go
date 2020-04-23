@@ -232,17 +232,18 @@ func (b LoghostBroker) Update(_ context.Context, instanceID string, details doma
 	}
 	patterns := append(syslogAddr.Patterns, params.Patterns...)
 	b.db.Create(&model.InstanceParam{
-		InstanceID: instanceID,
-		SpaceID:    instanceParam.SpaceID,
-		OrgID:      instanceParam.OrgID,
-		Namespace:  instanceParam.Namespace,
-		SyslogName: syslogAddr.Name,
-		Patterns:   model.ListToPatterns(patterns),
-		Tags:       model.MapToLabels(tags),
-		CompanyID:  syslogAddr.CompanyID,
-		UseTls:     params.UseTLS || b.config.PreferTLS,
-		DrainType:  model.DrainType(strings.ToLower(string(drainType))),
-		Revision:   instanceParam.Revision + 1,
+		InstanceID:   instanceID,
+		SpaceID:      instanceParam.SpaceID,
+		OrgID:        instanceParam.OrgID,
+		Namespace:    instanceParam.Namespace,
+		SyslogName:   syslogAddr.Name,
+		Patterns:     model.ListToPatterns(patterns),
+		SourceLabels: model.MapToSourceLabels(syslogAddr.SourceLabels),
+		Tags:         model.MapToLabels(tags),
+		CompanyID:    syslogAddr.CompanyID,
+		UseTls:       params.UseTLS || b.config.PreferTLS,
+		DrainType:    model.DrainType(strings.ToLower(string(drainType))),
+		Revision:     instanceParam.Revision + 1,
 	})
 	return domain.UpdateServiceSpec{
 		DashboardURL: b.genDashboardUrl(instanceID),

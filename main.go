@@ -113,6 +113,7 @@ func boot() error {
 		log.Fatalf("Could not migrate: %v", err)
 	}
 	migratePatternIfNeeded(db, config.SyslogAddresses)
+	migrateSourceLabelsIfNeeded(db, config.SyslogAddresses)
 
 	sw, err := CreateWriters(config.SyslogAddresses)
 	if err != nil {

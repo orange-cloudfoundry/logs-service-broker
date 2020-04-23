@@ -3,18 +3,14 @@ module github.com/orange-cloudfoundry/logs-service-broker
 go 1.14
 
 require (
-	cloud.google.com/go v0.37.4 // indirect
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/ArthurHlt/grok v1.0.3
 	github.com/cloudfoundry-community/gautocloud v1.1.5
 	github.com/cloudfoundry-community/go-cfenv v1.18.0 // indirect
-	github.com/cpuguy83/go-md2man v1.0.10 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e // indirect
 	github.com/drewolson/testflight v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
-	github.com/gobuffalo/envy v1.9.0 // indirect
-	github.com/gobuffalo/logger v1.0.3 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/golang/mock v1.4.3 // indirect
 	github.com/golang/protobuf v1.3.5 // indirect
@@ -25,7 +21,6 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/karrick/godirwalk v1.15.5 // indirect
 	github.com/lib/pq v1.3.0 // indirect
-	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/o1egl/gormrus v0.0.0-20190416211302-fde1f6a23457
@@ -38,7 +33,6 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/prometheus/procfs v0.0.11 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1
@@ -47,8 +41,6 @@ require (
 	github.com/spf13/viper v1.6.2 // indirect
 	golang.org/x/crypto v0.0.0-20200403201458-baeed622b8d8 // indirect
 	golang.org/x/sys v0.0.0-20200331124033-c3d80250170d // indirect
-	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/ini.v1 v1.55.0 // indirect
-	gopkg.in/russross/blackfriday.v2 v2.0.0 // indirect
 )
