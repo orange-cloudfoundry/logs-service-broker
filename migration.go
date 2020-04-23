@@ -207,7 +207,7 @@ func migrateSourceLabelsIfNeeded(db *gorm.DB, syslogAddrs model.SyslogAddresses)
 			entry := log.WithField("syslog_name", syslogAddr.Name).WithField("source_label", key)
 			entry.Infof("Migrating %d instances to add this source_label", len(ists))
 			for _, ist := range ists {
-				db.Where("instance_id = ? and key = ?", ist.InstanceID, key).Delete(model.SourceLabel{})
+				db.Where("instance_id = ? and `key` = ?", ist.InstanceID, key).Delete(model.SourceLabel{})
 				db.Create(&model.SourceLabel{
 					Key:        key,
 					Value:      value,
