@@ -19,7 +19,7 @@ $ cf create-service logs <plan> my-log-service -c '{"tags": {"my-tag": "bar"}, "
 
 Run update-service command on cf cli and rebind your bindings:
 ```bash
-$ cf update-service logs <plan> my-log-service -c '{"tags": {"my-tag": "bar"}, "patterns": ["%{GREEDYDATA:my-data}"]}'
+$ cf update-service my-log-service -c '{"tags": {"my-tag": "bar"}, "patterns": ["%{GREEDYDATA:my-data}"]}'
 $ cf unbind-service <my-app> my-log-service
 $ cf bind-service <my-app> my-log-service
 ```
