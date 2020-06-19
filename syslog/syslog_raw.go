@@ -15,13 +15,16 @@ import (
 )
 
 type Writer struct {
-	hostname string
-	network  string
-	raddr    string
-	conn     serverConn
-	mu       sync.Mutex // guards conn
-	tlsConf  *tls.Config
-	inTls    bool
+	hostname           string
+	network            string
+	raddr              string
+	conn               serverConn
+	mu                 sync.Mutex // guards conn
+	tlsConf            *tls.Config
+	inTls              bool
+	nbConnTry          int
+	muTry              sync.Mutex
+	hasBeenReconnected bool
 }
 
 type serverConn interface {
@@ -120,6 +123,26 @@ func tlsConfigFromAddr(u *url.URL) (*tls.Config, error) {
 // connect makes a connection to the syslog server.
 // It must be called with w.mu held.
 func (w *Writer) connect() (err error) {
+
+	w.muTry.Lock()
+	if w.nbConnTry >= 20 {
+		w.muTry.Unlock()
+		return fmt.Errorf("20 connect tries has been already made, erroring for preferring drop instead of server locking cause a lot of goroutine")
+	}
+	w.nbConnTry += 1
+	w.muTry.Unlock()
+
+	if w.nbConnTry > 0 && w.hasBeenReconnected {
+		w.muTry.Lock()
+		// if last connect try we remove
+		if w.nbConnTry == 1 {
+			w.hasBeenReconnected = false
+		}
+		w.nbConnTry -= 1
+		w.muTry.Unlock()
+		return nil
+	}
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.conn != nil {
@@ -134,13 +157,23 @@ func (w *Writer) connect() (err error) {
 	} else {
 		c, err = tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second}, w.network, w.raddr, w.tlsConf)
 	}
-	if err == nil {
-		w.conn = &netConn{conn: c}
-		if w.hostname == "" {
-			w.hostname = c.LocalAddr().String()
-		}
+	if err != nil {
+		w.muTry.Lock()
+		w.nbConnTry -= 1
+		w.muTry.Unlock()
+		return err
 	}
-	return
+
+	w.conn = &netConn{conn: c}
+	if w.hostname == "" {
+		w.hostname = c.LocalAddr().String()
+	}
+	w.muTry.Lock()
+	w.hasBeenReconnected = true
+	w.nbConnTry -= 1
+	w.muTry.Unlock()
+
+	return nil
 }
 
 func (w *Writer) writeAndRetry(s string) (int, error) {
