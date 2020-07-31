@@ -12,7 +12,7 @@ var patterns = map[string]string{
 	"BASE16NUM":          `(0[xX]?[0-9a-fA-F]+)`,
 	"POSINT":             `\b(?:[1-9][0-9]*)\b`,
 	"NONNEGINT":          `\b(?:[0-9]+)\b`,
-	"WORD":               `\b\w+\b`,
+	"WORD":               `\b(\w|-)+\b`,
 	"NOTSPACE":           `\S+`,
 	"SPACE":              `\s*`,
 	"DATA":               `.*?`,

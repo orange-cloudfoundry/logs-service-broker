@@ -1,7 +1,7 @@
 # code.cloudfoundry.org/lager v2.0.0+incompatible
 ## explicit
 code.cloudfoundry.org/lager
-# github.com/ArthurHlt/grok v1.0.3
+# github.com/ArthurHlt/grok v1.0.4
 ## explicit
 github.com/ArthurHlt/grok
 # github.com/azer/snakecase v1.0.0
