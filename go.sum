@@ -4,8 +4,8 @@ cloud.google.com/go v0.33.1/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
-github.com/ArthurHlt/grok v1.0.3 h1:xnUG2Iscs00f3kgWk8ZPTKZU0ZJt0GLpPvsQ+L9aLnw=
-github.com/ArthurHlt/grok v1.0.3/go.mod h1:Gb00kAC4fT87Z17n+sUxQsCN3NYnAj+JSK8xHtTepLA=
+github.com/ArthurHlt/grok v1.0.4 h1:vkslKQuzMZyITxOWFzbzA/Tt+9SgqBQVK1KW+ZtzygY=
+github.com/ArthurHlt/grok v1.0.4/go.mod h1:Gb00kAC4fT87Z17n+sUxQsCN3NYnAj+JSK8xHtTepLA=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=

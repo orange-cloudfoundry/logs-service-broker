@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	github.com/ArthurHlt/grok v1.0.3
+	github.com/ArthurHlt/grok v1.0.4
 	github.com/cloudfoundry-community/gautocloud v1.1.5
 	github.com/cloudfoundry-community/go-cfenv v1.18.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e // indirect
