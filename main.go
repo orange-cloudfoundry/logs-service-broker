@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"math/rand"
+	"net"
 	"net/http"
-	"net/url"
+	"net/http/pprof"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -26,79 +31,188 @@ import (
 	"gopkg.in/gormigrate.v1"
 )
 
-func init() {
-	if gautocloud.IsInACloudEnv() && gautocloud.CurrentCloudEnv().Name() != "localcloud" {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
+type writerMap = map[string]io.WriteCloser
+type app struct {
+	config *model.Config
 }
 
 func main() {
-	panic(boot())
+	a := newApp()
+	a.run()
 }
 
-func retrieveGormDb(config model.Config) *gorm.DB {
-	var db *gorm.DB
-	err := gautocloud.Inject(&db)
-	if err == nil {
-		if config.SQLCnxMaxOpen != 0 {
-			db.DB().SetMaxOpenConns(config.SQLCnxMaxOpen)
-		}
-		if config.SQLCnxMaxIdle != 0 {
-			db.DB().SetMaxIdleConns(config.SQLCnxMaxIdle)
-		}
-		if config.SQLCnxMaxLife != "" {
-			duration, err := time.ParseDuration(config.SQLCnxMaxLife)
-			if err != nil {
-				log.Warnf("Invalid configuration for SQLCnxMaxLife : %s", err.Error())
-			} else {
-				db.DB().SetConnMaxLifetime(duration)
-			}
-		}
-		return db
-	}
-	if !config.FallbackToSqlite {
-		log.Fatalf("Error when loading database: %s", err.Error())
-	}
-	log.Warnf("Error when loading database, switching to sqlite, see message: %s", err.Error())
-	db, _ = gorm.Open("sqlite3", config.SQLitePath)
-	return db
-}
-
-func CreateWriters(sysAddresses []model.SyslogAddress) (map[string]io.WriteCloser, error) {
-	writers := make(map[string]io.WriteCloser)
-	for _, sysAddr := range sysAddresses {
-		writer, err := syslog.NewWriter(sysAddr.URLs...)
-		if err != nil {
-			return writers, err
-		}
-		writers[sysAddr.Name] = writer
-	}
-	return writers, nil
-}
-
-func boot() error {
+func newApp() *app {
 	var config model.Config
-	gautocloud.Inject(&config)
-
-	loadLogConfig(config)
-
-	port := config.Port
-	if gautocloud.GetAppInfo().Port > 0 {
-		port = gautocloud.GetAppInfo().Port
+	if err := gautocloud.Inject(&config); err != nil {
+		log.Fatalf("unable to load configuration: %s", err)
 	}
-	if port == 0 {
-		port = 8088
+
+	return &app{
+		config: &config,
 	}
-	config.Port = port
+}
 
-	db := retrieveGormDb(config)
-	defer db.Close()
+// run -
+// 1. important to register as last handler cause it will capture `/(.*)` paths
+func (a *app) run() {
+	a.initializeLogs()
 
+	db, err := a.initializeDB()
+	if err != nil {
+		log.Fatalf("unable to loading database: %s", err.Error())
+	}
+
+	err = a.migrateDB(db)
+	if err != nil {
+		log.Fatalf("unable to migrate database: %v", err.Error())
+	}
+
+	cacher, err := a.initializeMetaCache(db)
+	if err != nil {
+		log.Fatalf("unable to initialize meta cacher: %s", err.Error())
+	}
+
+	writers, err := a.initializeWriters()
+	if err != nil {
+		log.Fatalf("unable to create syslog writers: %s", err.Error())
+	}
+
+	router := mux.NewRouter()
+	a.registerBroker(router, db, cacher)
+	a.registerDoc(router, db)
+	a.registerMetrics(router)
+	a.registerProfiler(router)
+	// 1.
+	a.registerForwarder(router, writers, cacher)
+
+	a.listen(router)
+	a.finish(db, writers)
+}
+
+func (a *app) finish(db *gorm.DB, writers writerMap) {
+	if db != nil {
+		db.Close()
+	}
+	if writers != nil {
+		for _, w := range writers {
+			w.Close()
+		}
+	}
+}
+
+func (a *app) initializeLogs() {
+	if a.config.Log.JSON != nil {
+		if *a.config.Log.JSON {
+			log.SetFormatter(&log.JSONFormatter{})
+		} else {
+			log.SetFormatter(&log.TextFormatter{
+				DisableColors: a.config.Log.NoColor,
+			})
+		}
+	}
+	lvl, err := log.ParseLevel(a.config.Log.Level)
+	if err != nil {
+		log.SetLevel(log.InfoLevel)
+	} else {
+		log.SetLevel(lvl)
+	}
+}
+
+// reconnectDB -
+// inspired by gorm author plugin: https://git.feneas.org/ganggo/gorm/-/blob/615ff81ac106969ebe511a34f9770085f73a57f3/plugins/reconnect/reconnect.go
+func (a *app) reconnectDB(db *gorm.DB) error {
+	var newDB *gorm.DB
+
+	err := gautocloud.Inject(&newDB)
+	if err != nil {
+		log.Errorf("[watchdog] failed to re-create database: %s", err.Error())
+		return err
+	}
+
+	(*db.DB()) = *(newDB.DB())
+	err = db.DB().Ping()
+	if err != nil {
+		log.Errorf("[watchdog] failed to ping database after recreate: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+// initializeDB -
+// 1. create DB according to config, fallback to sqlite if applicable
+// 2. configure connexion pools
+// 3. configure logs
+// 3. run background db watcher if needed
+func (a *app) initializeDB() (*gorm.DB, error) {
+	var db *gorm.DB
+
+	// 1.
+	err := gautocloud.Inject(&db)
+	if err != nil && a.config.DB.SQLiteFallback {
+		log.Warnf("Error when loading database, switching to sqlite, see message: %s", err.Error())
+		db, err = gorm.Open("sqlite3", a.config.DB.SQLitePath)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// 2.
+	if a.config.DB.CnxMaxOpen != 0 {
+		db.DB().SetMaxOpenConns(a.config.DB.CnxMaxOpen)
+	}
+	if a.config.DB.CnxMaxIdle != 0 {
+		db.DB().SetMaxIdleConns(a.config.DB.CnxMaxIdle)
+	}
+	if a.config.DB.CnxMaxLife != "" {
+		duration, err := time.ParseDuration(a.config.DB.CnxMaxLife)
+		if err != nil {
+			log.Warnf("Invalid configuration for SQLCnxMaxLife : %s", err.Error())
+		} else {
+			db.DB().SetConnMaxLifetime(duration)
+		}
+	}
+
+	// 3.
 	db.SetLogger(gormrus.New())
 	if log.GetLevel() == log.DebugLevel {
 		db.LogMode(true)
 	}
-	migrations := Migrations{Config: config, Migrations: gormMigration}
+
+	// 4.
+	a.watchDB(db)
+	return db, nil
+}
+
+// watchDB - background thread that exit program if DB is not reachable
+func (a *app) watchDB(db *gorm.DB) {
+	go func() {
+		for {
+			stats := db.DB().Stats()
+			dbStatsCnxMaxOpen.Set(float64(stats.MaxOpenConnections))
+			dbStatsCnxUsed.Set(float64(stats.InUse))
+			dbStatsCnxIdle.Set(float64(stats.Idle))
+			dbStatsCnxWaitDuration.Set(stats.WaitDuration.Seconds())
+
+			err := db.DB().Ping()
+			if err != nil {
+				log.Errorf("[watchdog] failed to ping database, try reconnect: %s", err.Error())
+				if err = a.reconnectDB(db); err != nil {
+					dbStatus.Set(float64(0))
+					time.Sleep(30 * time.Second)
+					continue
+				}
+			}
+			dbStatus.Set(float64(1))
+			time.Sleep(2 * time.Minute)
+		}
+	}()
+}
+
+func (a *app) migrateDB(db *gorm.DB) error {
+	migrations := Migrations{
+		Config:     a.config,
+		Migrations: gormMigration,
+	}
 	migrate := gormigrate.New(db, gormigrate.DefaultOptions, migrations.ToGormMigrate())
 	migrate.InitSchema(func(db *gorm.DB) error {
 		return db.AutoMigrate(
@@ -109,117 +223,213 @@ func boot() error {
 			&model.SourceLabel{},
 		).Error
 	})
-	if err := migrate.Migrate(); err != nil {
-		log.Fatalf("Could not migrate: %v", err)
-	}
-	migratePatternIfNeeded(db, config.SyslogAddresses)
-	migrateSourceLabelsIfNeeded(db, config.SyslogAddresses)
+	return migrate.Migrate()
+}
 
-	sw, err := CreateWriters(config.SyslogAddresses)
-	if err != nil {
-		return err
+// listen -
+// 1. listen for SIGUSR1 or Interrupt signals
+// 2. create servers and serve requests
+// 3. wait for signal trigger
+// 4. graceful shutdown servers with timeout
+func (a *app) listen(h http.Handler) {
+	// 1.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGUSR1, os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		oscall := <-c
+		log.Infof("received signal: %+v", oscall)
+		cancel()
+	}()
+
+	// 2.
+	var server, serverTLS *http.Server
+
+	server = a.startServer(h, a.config.Web.GetPort(), nil, nil)
+	if a.config.HasTLS() {
+		serverTLS = a.startServer(h, a.config.Web.TLS.Port, &a.config.Web.TLS.CertFile, &a.config.Web.TLS.KeyFile)
 	}
+
+	// 3.
+	<-ctx.Done()
+
+	// 4.
+	log.Infof("server shutdown required")
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() {
-		for _, w := range sw {
-			w.Close()
+		cancel()
+	}()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("server Shutdown Failed:%+s", err)
+	}
+	if serverTLS != nil {
+		if err := serverTLS.Shutdown(ctx); err != nil {
+			log.Fatalf("server Shutdown Failed:%+s", err)
+		}
+	}
+	log.Infof("server shutdown complete")
+}
+
+func (a *app) startServer(h http.Handler, port int, certFile, keyFile *string) *http.Server {
+	rand.Seed(time.Now().UnixNano())
+
+	cnxCtxFn := func(ctx context.Context, c net.Conn) context.Context {
+		return ctx
+	}
+
+	if !a.config.Web.MaxKeepAlive.Disabled {
+		seconds := a.config.Web.MaxKeepAlive.GetFuzziness().Seconds()
+		cnxCtxFn = func(ctx context.Context, c net.Conn) context.Context {
+			fuzziness := time.Duration(seconds * rand.Float64())
+			end := time.
+				Now().
+				Add(*a.config.Web.MaxKeepAlive.GetDuration()).
+				Add(fuzziness)
+			return context.WithValue(ctx, model.EndOfLifeKey, end)
+		}
+	}
+
+	addr := fmt.Sprintf(":%d", port)
+	server := &http.Server{
+		Addr:        addr,
+		Handler:     h,
+		ConnContext: cnxCtxFn,
+	}
+	go func() {
+		var err error
+		if certFile != nil && keyFile != nil {
+			log.Infof("serving https on %s", addr)
+			err = server.ListenAndServeTLS(*certFile, *keyFile)
+		} else {
+			log.Infof("serving http on %s", addr)
+			err = server.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
+			panic(err)
+			os.Exit(1)
 		}
 	}()
-	c, err := NewMetaCacher(db, config.CacheDuration)
+	return server
+}
+
+// maxKeepAliveDecorator -
+// Enforce "Connection: close" header for connexions existing for more then
+// maxKeepAlive. Forcing client to reconnect and possibly to rebalance to other
+// nodes.
+// 1. disabled when maxKeepAlive is zero
+func (a *app) maxKeepAliveDecorator(h http.Handler) http.Handler {
+	// 1.
+	if a.config.Web.MaxKeepAlive.Disabled {
+		return h
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		endTimeI := r.Context().Value(model.EndOfLifeKey)
+		endTime := endTimeI.(time.Time)
+		if time.Now().After(endTime) {
+			w.Header().Set("Connection", "close")
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+func (a *app) initializeMetaCache(db *gorm.DB) (*MetaCacher, error) {
+	cacher, err := NewMetaCacher(db, a.config.BindingCache.Duration)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	go c.Cleaner()
+	go cacher.Cleaner()
+	return cacher, nil
+}
 
-	urlSyslog, _ := url.Parse(config.SyslogDrainURL)
-	allowedDomain := urlSyslog.Host
-	if urlSyslog.Host == "" {
-		allowedDomain = config.SyslogDrainURL
+func (a *app) initializeWriters() (writerMap, error) {
+	writers := make(writerMap)
+	for _, sysAddr := range a.config.SyslogAddresses {
+		writer, err := syslog.NewWriter(sysAddr.URLs...)
+		if err != nil {
+			return nil, err
+		}
+		writers[sysAddr.Name] = writer
 	}
-	allowedDomain = strings.Split(allowedDomain, ":")[0]
+	return writers, nil
+}
 
-	forwarder := NewForwarder(c, sw, config.ParsingKeys, allowedDomain, config.DisallowLogsFromExternal)
-	broker := NewLoghostBroker(db, c, config)
-	userdoc := userdocs.NewUserDoc(db, config)
+// registerBroker
+// 1. create broker implementation instance
+// 2. decorate with standard web broker interface
+// 3. bind to /v2 routes
+func (a *app) registerBroker(router *mux.Router, db *gorm.DB, cacher *MetaCacher) {
+	// 1.
+	broker := NewLoghostBroker(db, cacher, a.config)
 
+	// 2.
 	lag := lager.NewLogger("broker")
 	lag.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 	brokerHandler := brokerapi.New(broker, lag, brokerapi.BrokerCredentials{
-		Username: config.BrokerUsername,
-		Password: config.BrokerPassword,
+		Username: a.config.Broker.Username,
+		Password: a.config.Broker.Password,
 	})
 
-	r := mux.NewRouter()
-	r.NewRoute().MatcherFunc(func(req *http.Request, m *mux.RouteMatch) bool {
+	// 3.
+	matcherFunc := func(req *http.Request, m *mux.RouteMatch) bool {
 		return strings.HasPrefix(req.URL.Path, "/v2")
-	}).Handler(brokerHandler)
-	r.Handle("/metrics", promhttp.Handler())
+	}
+	router.NewRoute().MatcherFunc(matcherFunc).Handler(brokerHandler)
+}
 
-	boxAsset := packr.New("userdocs_assets", "./userdocs/assets")
-	r.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(boxAsset)))
+func (a *app) registerDoc(router *mux.Router, db *gorm.DB) {
+	userdoc := userdocs.NewUserDoc(db, a.config)
+	assets := packr.New("userdocs_assets", "./userdocs/assets")
+	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(assets)))
+	router.Handle("/docs", userdoc)
+	router.Handle("/docs/{instanceId}", userdoc)
+}
 
-	r.Handle("/docs", userdoc)
-	r.Handle("/docs/{instanceId}", userdoc)
+// registerForwarder
+// 1. wrap forward handler with auto-close cnx decorator
+// 2. handle request like '{bindingID}.{drainHost}'
+func (a *app) registerForwarder(router *mux.Router, writers writerMap, cacher *MetaCacher) {
+	f := NewForwarder(cacher, writers, a.config)
 
-	if config.VirtualHost {
-		url, err := url.Parse(config.SyslogDrainURL)
-		if err != nil {
-			log.Errorf("unable to parse provided syslog_drain_url '%s' : %s", config.SyslogDrainURL)
-			return err
-		}
-		r.NewRoute().MatcherFunc(func(req *http.Request, m *mux.RouteMatch) bool {
-			if !strings.HasSuffix(req.Host, url.Hostname()) {
+	// 1.
+	decorated := a.maxKeepAliveDecorator(f)
+
+	// 2.
+	if a.config.Broker.VirtualHost {
+		log.Info("[forwarder] enabling virutal host")
+		matcherFunc := func(req *http.Request, m *mux.RouteMatch) bool {
+			if !strings.HasSuffix(req.Host, a.config.Broker.DrainHost) {
 				return false
 			}
-			return strings.TrimSuffix(req.Host, url.Hostname()) != ""
-		}).Handler(forwarder)
-	}
-
-	r.Handle("/{bindingId}", forwarder)
-
-	if !config.NotExitWhenConnFailed {
-		go checkDbConnection(db)
-	}
-
-	if config.HasTLS() {
-		log.Infof("serving https on :%d", config.TLSPort)
-		go func() {
-			err := http.ListenAndServeTLS(fmt.Sprintf(":%d", config.TLSPort), config.SSLCertFile, config.SSLKeyFile, r)
-			if err != nil {
-				panic(err)
-				os.Exit(1)
-			}
-		}()
-
-	}
-	log.Infof("serving http on :%d", config.Port)
-	return http.ListenAndServe(fmt.Sprintf(":%d", config.Port), r)
-}
-
-func checkDbConnection(db *gorm.DB) {
-	for {
-		err := db.DB().Ping()
-		if err != nil {
-			db.Close()
-			log.Fatalf("Error when pinging database: %s", err.Error())
+			return strings.TrimSuffix(req.Host, a.config.Broker.DrainHost) != ""
 		}
-		time.Sleep(5 * time.Minute)
+		router.NewRoute().MatcherFunc(matcherFunc).Handler(decorated)
+	}
+
+	router.Handle("/{bindingId}", decorated)
+}
+
+func (a *app) registerMetrics(router *mux.Router) {
+	router.Handle("/metrics", promhttp.Handler())
+}
+
+func (a *app) registerProfiler(router *mux.Router) {
+	if !a.config.Log.EnableProfiler {
+		return
+	}
+	log.Warn("enabling profiling endpoint")
+	router.HandleFunc("/debug/pprof", pprof.Index)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	router.HandleFunc("/debug/pprof/trace", pprof.Trace)
+}
+
+func init() {
+	if gautocloud.IsInACloudEnv() && gautocloud.CurrentCloudEnv().Name() != "localcloud" {
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 }
 
-func loadLogConfig(c model.Config) {
-	if c.LogJSON != nil {
-		if *c.LogJSON {
-			log.SetFormatter(&log.JSONFormatter{})
-		} else {
-			log.SetFormatter(&log.TextFormatter{
-				DisableColors: c.LogNoColor,
-			})
-		}
-	}
-	lvl, err := log.ParseLevel(c.LogLevel)
-	if err != nil {
-		log.SetLevel(log.InfoLevel)
-	} else {
-		log.SetLevel(lvl)
-	}
-}
+// Local Variables:
+// ispell-local-dictionary: "american"
+// End:

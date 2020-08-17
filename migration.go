@@ -5,7 +5,6 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/gormigrate.v1"
 )
 
@@ -13,12 +12,12 @@ var labelsMigrated = false
 
 type Migration struct {
 	ID       string
-	Migrate  func(db *gorm.DB, config model.Config) error
-	Rollback func(db *gorm.DB, config model.Config) error
+	Migrate  func(db *gorm.DB, config *model.Config) error
+	Rollback func(db *gorm.DB, config *model.Config) error
 }
 
 type Migrations struct {
-	Config     model.Config
+	Config     *model.Config
 	Migrations []*Migration
 }
 
@@ -41,7 +40,7 @@ func (m Migrations) ToGormMigrate() []*gormigrate.Migration {
 var gormMigration = []*Migration{
 	{
 		ID: "init",
-		Migrate: func(db *gorm.DB, config model.Config) error {
+		Migrate: func(db *gorm.DB, config *model.Config) error {
 			fmt.Println("toto")
 			err := db.AutoMigrate(&model.SourceLabel{}).Error
 			if err != nil {
@@ -58,20 +57,20 @@ var gormMigration = []*Migration{
 			}
 			return nil
 		},
-		Rollback: func(db *gorm.DB, config model.Config) error {
+		Rollback: func(db *gorm.DB, config *model.Config) error {
 			return nil
 		},
 	},
 	{
 		ID:      "migrate-labels",
 		Migrate: migrateLabels,
-		Rollback: func(db *gorm.DB, config model.Config) error {
+		Rollback: func(db *gorm.DB, config *model.Config) error {
 			return nil
 		},
 	},
 	{
 		ID: "set-revision",
-		Migrate: func(db *gorm.DB, config model.Config) error {
+		Migrate: func(db *gorm.DB, config *model.Config) error {
 			var instanceParams []model.InstanceParam
 			db.Where("revision IS NULL").Find(&instanceParams)
 			for _, instanceParam := range instanceParams {
@@ -81,48 +80,42 @@ var gormMigration = []*Migration{
 			}
 			return nil
 		},
-		Rollback: func(db *gorm.DB, config model.Config) error {
+		Rollback: func(db *gorm.DB, config *model.Config) error {
 			return nil
 		},
 	},
 	{
 		ID: "migrate-pm-instance",
-		Migrate: func(db *gorm.DB, config model.Config) error {
+		Migrate: func(db *gorm.DB, config *model.Config) error {
 			return db.Exec("ALTER TABLE instance_params DROP PRIMARY KEY, ADD PRIMARY KEY(instance_id, revision)").Error
 		},
-		Rollback: func(db *gorm.DB, config model.Config) error {
+		Rollback: func(db *gorm.DB, config *model.Config) error {
 			return nil
 		},
 	},
 	{
 		ID: "add-usetls-and-draintype",
-		Migrate: func(db *gorm.DB, config model.Config) error {
+		Migrate: func(db *gorm.DB, config *model.Config) error {
 			err := db.AutoMigrate(&model.InstanceParam{}).Error
 			if err != nil {
 				return err
 			}
 			ists := make([]model.InstanceParam, 0)
 			db.Find(&ists)
-			addrs := model.SyslogAddresses(config.SyslogAddresses)
 			for _, ist := range ists {
-				addr, _ := addrs.FoundSyslogWriter(ist.SyslogName)
-				drainType := addr.DefaultDrainType
-				if config.DisableDrainType {
-					drainType = ""
-				}
 				db.Table("instance_params").
 					Where("instance_id = ? and revision = ?", ist.InstanceID, ist.Revision).
-					Updates(map[string]interface{}{"use_tls": config.PreferTLS, "drain_type": drainType})
+					Updates(map[string]interface{}{"use_tls": true, "drain_type": ""})
 			}
 			return nil
 		},
-		Rollback: func(db *gorm.DB, config model.Config) error {
+		Rollback: func(db *gorm.DB, config *model.Config) error {
 			return nil
 		},
 	},
 }
 
-func migrateLabels(db *gorm.DB, config model.Config) error {
+func migrateLabels(db *gorm.DB, config *model.Config) error {
 	if !db.HasTable(&model.Label{}) || labelsMigrated {
 		return nil
 	}
@@ -160,61 +153,4 @@ func migrateLabels(db *gorm.DB, config model.Config) error {
 	db.Delete(&model.Label{}, "instance_id IS NULL or instance_id = ''")
 	db.Delete(&model.Pattern{}, "instance_id IS NULL or instance_id = ''")
 	return nil
-}
-
-func migratePatternIfNeeded(db *gorm.DB, syslogAddrs model.SyslogAddresses) {
-	log.Info("Migrating patterns if needed ...")
-	for _, syslogAddr := range syslogAddrs {
-		for _, pattern := range syslogAddr.Patterns {
-			ists := make([]model.InstanceParam, 0)
-			db.Table("instance_params i").
-				Where("i.syslog_name = ? AND ? NOT IN (?)",
-					syslogAddr.Name, pattern,
-					db.Table("patterns p").Select("p.pattern").Where("p.instance_id = i.instance_id").QueryExpr(),
-				).
-				Find(&ists)
-			if len(ists) == 0 {
-				continue
-			}
-			entry := log.WithField("syslog_name", syslogAddr.Name).WithField("pattern", pattern)
-			entry.Infof("Migrating %d instances to add this pattern", len(ists))
-			for _, ist := range ists {
-				db.Create(&model.Pattern{
-					InstanceID: ist.InstanceID,
-					Pattern:    pattern,
-				})
-			}
-		}
-	}
-	log.Info("Finished migrating patterns if needed.")
-}
-
-func migrateSourceLabelsIfNeeded(db *gorm.DB, syslogAddrs model.SyslogAddresses) {
-	log.Info("Migrating source labels if needed ...")
-	for _, syslogAddr := range syslogAddrs {
-		for key, value := range syslogAddr.SourceLabels {
-			ists := make([]model.InstanceParam, 0)
-			db.Table("instance_params i").
-				Where("i.syslog_name = ? AND ? NOT IN (?)",
-					syslogAddr.Name, key,
-					db.Table("source_labels l").Select("l.key").Where("l.instance_id = i.instance_id and l.value = ?", value).QueryExpr(),
-				).
-				Find(&ists)
-			if len(ists) == 0 {
-				continue
-			}
-
-			entry := log.WithField("syslog_name", syslogAddr.Name).WithField("source_label", key)
-			entry.Infof("Migrating %d instances to add this source_label", len(ists))
-			for _, ist := range ists {
-				db.Where("instance_id = ? and `key` = ?", ist.InstanceID, key).Delete(model.SourceLabel{})
-				db.Create(&model.SourceLabel{
-					Key:        key,
-					Value:      value,
-					InstanceID: ist.InstanceID,
-				})
-			}
-		}
-	}
-	log.Info("Finished migrating source labels if needed.")
 }

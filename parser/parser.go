@@ -13,7 +13,7 @@ import (
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 )
 
-const defCompanyId = "logsbroker@1368"
+const defCompanyID = "logsbroker@1368"
 
 // this is from https://github.com/cloudfoundry/cf-syslog-drain-release/blob/f13fd13ec6d08822f261cbb575aa5f357ab32f0d/src/adapter/internal/egress/tcp.go#L21-L24
 // gaugeStructuredDataID contains the registered enterprise ID for the Cloud
@@ -27,6 +27,7 @@ const (
 
 type Parser struct {
 	filters []Filter
+	p5424   *rfc5424.Parser
 }
 
 type TemplateData struct {
@@ -55,12 +56,15 @@ var defaultParsingKeys = []model.ParsingKey{
 }
 
 func (p MsgParam) SetParameter(cid, key, val string) MsgParam {
-	data := make(map[string]string)
-	if prevData, ok := p[cid]; ok {
-		data = prevData
+	var (
+		data map[string]string
+		ok   bool
+	)
+	if data, ok = p[cid]; !ok {
+		data = make(map[string]string)
+		p[cid] = data
 	}
 	data[key] = val
-	p[cid] = data
 	return p
 }
 
@@ -71,6 +75,7 @@ func NewParser(parsingKeys []model.ParsingKey) *Parser {
 	grokParser.AddPatternsFromMap(patterns)
 	grokParser.AddPatternsFromMap(programPatternsToGrokPattern())
 	return &Parser{
+		p5424: rfc5424.NewParser(),
 		filters: []Filter{
 			&DefaultFilter{grokParser},
 			&MetricsFilter{},
@@ -80,46 +85,51 @@ func NewParser(parsingKeys []model.ParsingKey) *Parser {
 	}
 }
 
-func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...string) (*rfc5424.SyslogMessage, error) {
-	p5424 := rfc5424.NewParser()
-	pMes, err := p5424.Parse(message, nil)
+func (p Parser) Parse(
+	logData *model.LogMetadata,
+	message []byte,
+	patterns []string,
+) (*rfc5424.SyslogMessage, error) {
+	parsed, err := p.p5424.Parse(message, nil)
 	if err != nil {
 		return nil, err
 	}
-	if (pMes.Message() == nil || strings.TrimSpace(*pMes.Message()) == "") && !isMetrics(pMes) {
-		return nil, nil
+
+	if parsed.Message() == nil || strings.TrimSpace(*parsed.Message()) == "" {
+		if !isMetrics(parsed) {
+			return nil, nil
+		}
 	}
 
-	org, space, app := p.ParseHost(pMes)
-
-	cId := logData.InstanceParam.CompanyID
-	if cId == "" {
-		cId = defCompanyId
+	org, space, app := p.ParseHost(parsed)
+	compID := logData.InstanceParam.CompanyID
+	if compID == "" {
+		compID = defCompanyID
 	}
 
-	tags := model.Labels(logData.InstanceParam.Tags).ToMap()
+	tags := logData.InstanceParam.TagsToMap()
 	data := make(map[string]interface{})
-	pMes.SetParameter("ensure-init-data@0", "foo", "bar")
-	msgParam := MsgParam(*pMes.StructuredData())
+	parsed.SetParameter("ensure-init-data@0", "foo", "bar")
+	msgParam := MsgParam(*parsed.StructuredData())
 	delete(msgParam, "ensure-init-data@0")
 	msgParam.
-		SetParameter(cId, "app", fmt.Sprintf("%s/%s/%s", org, space, app)).
-		SetParameter(cId, "space", space).
-		SetParameter(cId, "space_id", logData.InstanceParam.SpaceID).
-		SetParameter(cId, "org_id", logData.InstanceParam.OrgID).
-		SetParameter(cId, "app_id", logData.AppID).
-		SetParameter(cId, "org", org).
-		SetParameter(cId, "app_name", app)
+		SetParameter(compID, "app", fmt.Sprintf("%s/%s/%s", org, space, app)).
+		SetParameter(compID, "space", space).
+		SetParameter(compID, "space_id", logData.InstanceParam.SpaceID).
+		SetParameter(compID, "org_id", logData.InstanceParam.OrgID).
+		SetParameter(compID, "app_id", logData.AppID).
+		SetParameter(compID, "org", org).
+		SetParameter(compID, "app_name", app)
 
 	for _, filter := range p.filters {
-		if !filter.Match(pMes) {
+		if !filter.Match(parsed) {
 			continue
 		}
 		var values map[string]interface{}
 		if _, ok := filter.(FilterPatterns); ok && len(patterns) > 0 {
-			values = filter.(FilterPatterns).FilterPatterns(pMes, patterns)
+			values = filter.(FilterPatterns).FilterPatterns(parsed, patterns)
 		} else {
-			values = filter.Filter(pMes)
+			values = filter.Filter(parsed)
 		}
 		data = utils.MergeMap(data, values)
 	}
@@ -150,18 +160,17 @@ func (p Parser) Parse(logData model.LogMetadata, message []byte, patterns ...str
 		data["@exception_tag"] = err.Error()
 	}
 	for k, v := range tags {
-		msgParam.SetParameter(cId, k, v)
+		msgParam.SetParameter(compID, k, v)
 	}
 	b, _ := json.Marshal(data)
-	structDataPtr := pMes.StructuredData()
+	structDataPtr := parsed.StructuredData()
 	*structDataPtr = msgParam
-	pMes.SetMessage(string(b) + "\n")
-
-	return pMes, nil
+	parsed.SetMessage(string(b) + "\n")
+	return parsed, nil
 }
 
-func (p Parser) ParseHost(pmes *rfc5424.SyslogMessage) (org, space, app string) {
-	s := strings.Split(*pmes.Hostname(), ".")
+func (p Parser) ParseHost(parsed *rfc5424.SyslogMessage) (org, space, app string) {
+	s := strings.Split(*parsed.Hostname(), ".")
 	if len(s) == 1 {
 		return "", "", s[0]
 	}
@@ -173,29 +182,26 @@ func (p Parser) ParseHost(pmes *rfc5424.SyslogMessage) (org, space, app string) 
 
 func (p Parser) ParseHostFromMessage(message []byte) (org, space, app string) {
 	p5424 := rfc5424.NewParser()
-	pMes, err := p5424.Parse(message, nil)
+	parsed, err := p5424.Parse(message, nil)
 	if err != nil {
 		return "", "", ""
 	}
 
-	return p.ParseHost(pMes)
+	return p.ParseHost(parsed)
 }
 
-func isMetrics(pMes *rfc5424.SyslogMessage) bool {
-	if pMes == nil || pMes.StructuredData() == nil {
+func isMetrics(parsed *rfc5424.SyslogMessage) bool {
+	structData := parsed.StructuredData()
+	if structData == nil || *structData == nil {
 		return false
 	}
-	structData := *pMes.StructuredData()
-	if structData == nil {
-		return false
-	}
-	if _, ok := structData[gaugeStructuredDataID]; ok {
+	if _, ok := (*structData)[gaugeStructuredDataID]; ok {
 		return true
 	}
-	if _, ok := structData[counterStructuredDataID]; ok {
+	if _, ok := (*structData)[counterStructuredDataID]; ok {
 		return true
 	}
-	if _, ok := structData[timerStructuredDataID]; ok {
+	if _, ok := (*structData)[timerStructuredDataID]; ok {
 		return true
 	}
 	return false
