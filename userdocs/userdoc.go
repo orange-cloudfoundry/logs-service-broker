@@ -14,13 +14,13 @@ import (
 
 type UserDoc struct {
 	db     *gorm.DB
-	config model.Config
+	config *model.Config
 }
 
 var boxTemplates = packr.New("userdocs_templates", "./templates")
 var mainTpl *template.Template
 
-func NewUserDoc(db *gorm.DB, config model.Config) *UserDoc {
+func NewUserDoc(db *gorm.DB, config *model.Config) *UserDoc {
 	var err error
 	mainFile, _ := boxTemplates.FindString("main.html")
 	mainTpl, err = template.New("main.html").Funcs(tplfuncs).Parse(mainFile)
@@ -63,7 +63,7 @@ func (d UserDoc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Config        model.Config
 		InstanceParam *model.InstanceParam
 		LogMetadatas  []model.LogMetadata
-	}{d.config, instanceParam, logMetadatas})
+	}{*d.config, instanceParam, logMetadatas})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))

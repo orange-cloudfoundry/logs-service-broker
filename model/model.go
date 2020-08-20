@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/cloudfoundry-community/gautocloud"
 	"github.com/cloudfoundry-community/gautocloud/connectors/generic"
@@ -16,42 +17,113 @@ func init() {
 }
 
 const (
-	PlatformCF  = "cloudfoundry"
-	PlatformK8s = "kubernetes"
-
+	PlatformCF   = "cloudfoundry"
+	PlatformK8s  = "kubernetes"
 	RevKey       = "rev"
+	EndOfLifeKey = "end-of-life"
 	DrainTypeKey = "drain-type"
 )
 
+type LogConfig struct {
+	Level          string `cloud:"level"`
+	JSON           *bool  `cloud:"json"`
+	NoColor        bool   `cloud:"no_color"`
+	EnableProfiler bool   `cloud:"enable_profiler"`
+}
+
+type WebTLSConfig struct {
+	Port     int    `cloud:"port"`
+	CertFile string `cloud:"cert_file" cloud-default:""`
+	KeyFile  string `cloud:"key_file"  cloud-default:""`
+}
+
+type KeepAliveConfig struct {
+	Disabled  bool   `cloud:"disabled"`
+	Duration  string `cloud:"duration" cloud-default:"4m"`
+	Fuzziness string `cloud:"fuzziness" cloud-default:"1m"`
+	duration  *time.Duration
+	fuzziness *time.Duration
+}
+
+type WebConfig struct {
+	Port                 int             `cloud:"port"`
+	MaxKeepAlive         KeepAliveConfig `cloud:"max_keep_alive"`
+	TLS                  WebTLSConfig    `cloud:"tls"`
+	maxKeepAliveDuration *time.Duration
+}
+
+// GetPort - Compute port according to gautocloud and configuration
+func (w *WebConfig) GetPort() int {
+	port := w.Port
+	if gautocloud.GetAppInfo().Port > 0 {
+		port = gautocloud.GetAppInfo().Port
+	}
+	if port == 0 {
+		port = 8088
+	}
+	return port
+}
+
+type BrokerConfig struct {
+	PublicHost          string `cloud:"public_host"`
+	DrainHost           string `cloud:"drain_host"`
+	Username            string `cloud:"username"`
+	Password            string `cloud:"password"`
+	ForceEmptyDrainType bool   `cloud:"force_empty_drain_type"`
+	VirtualHost         bool   `cloud:"virtual_host"`
+}
+
+type DBConfig struct {
+	CnxMaxIdle     int    `cloud:"cnx_max_idle" cloud-default:"20"`
+	CnxMaxOpen     int    `cloud:"cnx_max_open" cloud-default:"100"`
+	CnxMaxLife     string `cloud:"cnx_max_life" cloud-default:"1h"`
+	SQLiteFallback bool   `cloud:"sqlite_fallback"`
+	SQLitePath     string `cloud:"sqlite_path" cloud-default:"loghostsvc.db"`
+}
+
+type BindingCacheConfig struct {
+	Duration string `cloud:"duration" cloud-default:"10m"`
+}
+
+type ForwarderConfig struct {
+	AllowedHosts []string     `cloud:"allowed_hosts"`
+	ParsingKeys  []ParsingKey `cloud:"parsing_keys"`
+}
+
+func (f *KeepAliveConfig) GetDuration() *time.Duration {
+	if f.duration == nil {
+		dur, err := time.ParseDuration(f.Duration)
+		if err != nil {
+			dur, _ = time.ParseDuration("4m")
+		}
+		f.duration = &dur
+	}
+	return f.duration
+}
+
+func (f *KeepAliveConfig) GetFuzziness() *time.Duration {
+	if f.fuzziness == nil {
+		dur, err := time.ParseDuration(f.Fuzziness)
+		if err != nil {
+			dur, _ = time.ParseDuration("4m")
+		}
+		f.fuzziness = &dur
+	}
+	return f.fuzziness
+}
+
 type Config struct {
-	SyslogAddresses          []SyslogAddress `cloud:"syslog_addresses"`
-	Port                     int             `cloud:"port"`
-	TLSPort                  int             `cloud:"tls_port"`
-	PreferTLS                bool            `cloud:"prefer_tls"`
-	ExternalUrl              string          `cloud:"external_url"`
-	DisallowLogsFromExternal bool            `cloud:"disallow_logs_from_external"`
-	DisableDrainType         bool            `cloud:"disable_drain_type"`
-	BrokerUsername           string          `cloud:"broker_username"`
-	BrokerPassword           string          `cloud:"broker_password"`
-	SyslogDrainURL           string          `cloud:"syslog_drain_url"`
-	VirtualHost              bool            `cloud:"virtual_host"`
-	LogLevel                 string          `cloud:"log_level"`
-	LogJSON                  *bool           `cloud:"log_json"`
-	LogNoColor               bool            `cloud:"log_no_color"`
-	FallbackToSqlite         bool            `cloud:"fallback_to_sqlite"`
-	SSLCertFile              string          `cloud:"ssl_cert_file" cloud-default:""`
-	SSLKeyFile               string          `cloud:"ssl_key_file" cloud-default:""`
-	SQLitePath               string          `cloud:"sqlite_path" cloud-default:"loghostsvc.db"`
-	SQLCnxMaxIdle            int             `cloud:"sql_cnx_max_idle" cloud-default:"20"`
-	SQLCnxMaxOpen            int             `cloud:"sql_cnx_max_open" cloud-default:"100"`
-	SQLCnxMaxLife            string          `cloud:"sql_cnx_max_life" cloud-default:"1h"`
-	CacheDuration            string          `cloud:"cache_duration" cloud-default:"10m"`
-	NotExitWhenConnFailed    bool            `cloud:"not_exit_when_con_failed"`
-	ParsingKeys              []ParsingKey    `cloud:"parsing_keys"`
+	Web             WebConfig          `cloud:"web"`
+	Log             LogConfig          `cloud:"log"`
+	SyslogAddresses []SyslogAddress    `cloud:"syslog_addresses"`
+	Broker          BrokerConfig       `cloud:"broker"`
+	DB              DBConfig           `cloud:"db"`
+	Forwarder       ForwarderConfig    `cloud:"forwarder"`
+	BindingCache    BindingCacheConfig `cloud:"binding_cache"`
 }
 
 func (c Config) HasTLS() bool {
-	return c.SSLCertFile != "" && c.SSLKeyFile != "" && c.TLSPort > 0
+	return c.Web.TLS.CertFile != "" && c.Web.TLS.KeyFile != "" && c.Web.TLS.Port > 0
 }
 
 type ParsingKey struct {
@@ -80,15 +152,15 @@ func (a SyslogAddresses) FoundSyslogWriter(planIDOrName string) (SyslogAddress, 
 
 type SyslogAddress struct {
 	ID               string            `cloud:"id"`
-	CompanyID        string            `cloud:"company_id"`
 	Name             string            `cloud:"name"`
+	CompanyID        string            `cloud:"company_id"`
 	Description      string            `cloud:"description"`
-	Bullets          []string          `cloud:"bullets"`
+	DefaultDrainType DrainType         `cloud:"default_drain_type"`
 	URLs             []string          `cloud:"urls"`
+	Bullets          []string          `cloud:"bullets"`
+	Patterns         []string          `cloud:"patterns"`
 	Tags             map[string]string `cloud:"tags"`
 	SourceLabels     map[string]string `cloud:"source_labels"`
-	Patterns         []string          `cloud:"patterns"`
-	DefaultDrainType DrainType         `cloud:"default_drain_type"`
 }
 
 func (a SyslogAddress) ToServicePlan() brokerapi.ServicePlan {
@@ -118,6 +190,14 @@ type InstanceParam struct {
 	SourceLabels []SourceLabel `gorm:"foreignkey:InstanceID"`
 }
 
+func (d *InstanceParam) TagsToMap() map[string]string {
+	m := make(map[string]string)
+	for _, label := range d.Tags {
+		m[label.Key] = label.Value
+	}
+	return m
+}
+
 func (d *InstanceParam) BeforeDelete(tx *gorm.DB) (err error) {
 	if d.InstanceID == "" {
 		return nil
@@ -140,16 +220,6 @@ type Label struct {
 	Key        string
 	Value      string `gorm:"size:600"`
 	InstanceID string
-}
-
-type Labels []Label
-
-func (labels Labels) ToMap() map[string]string {
-	m := make(map[string]string)
-	for _, label := range labels {
-		m[label.Key] = label.Value
-	}
-	return m
 }
 
 type SourceLabel struct {

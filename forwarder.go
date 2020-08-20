@@ -16,107 +16,108 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type AuthorizeFunc = func(*http.Request) bool
+
 type Forwarder struct {
-	sw                   map[string]io.WriteCloser
-	cacher               *MetaCacher
-	parser               *parser.Parser
-	allowedHost          string
-	disallowFromExternal bool
+	sw         map[string]io.WriteCloser
+	cacher     *MetaCacher
+	parser     *parser.Parser
+	config     *model.ForwarderConfig
+	authorizer AuthorizeFunc
 }
 
+// NewForwarder -
+// 1. compute once for all the authorization function instead of switching at each requests
 func NewForwarder(
 	cacher *MetaCacher,
 	writers map[string]io.WriteCloser,
-	parsingKeys []model.ParsingKey,
-	allowedHost string,
-	disallowFromExternal bool,
+	config *model.Config,
 ) *Forwarder {
-	return &Forwarder{
-		sw:                   writers,
-		cacher:               cacher,
-		parser:               parser.NewParser(parsingKeys),
-		allowedHost:          allowedHost,
-		disallowFromExternal: disallowFromExternal,
+	f := &Forwarder{
+		sw:         writers,
+		cacher:     cacher,
+		parser:     parser.NewParser(config.Forwarder.ParsingKeys),
+		config:     &config.Forwarder,
+		authorizer: alwaysAuthorized,
 	}
+
+	// 1.
+	if len(config.Forwarder.AllowedHosts) != 0 {
+		f.authorizer = f.isAuthorized
+		if config.Broker.VirtualHost {
+			f.authorizer = f.isAuthorizedVhost
+		}
+	}
+	return f
 }
 
-func (f Forwarder) Forward(bindingId string, rev int, message []byte) error {
+func (f Forwarder) Forward(bindingID string, rev int, message []byte) error {
 	if len(message) == 0 {
 		return nil
 	}
 	org, space, app := f.parser.ParseHostFromMessage(message)
-	pLabels := prometheus.Labels{
+	labels := prometheus.Labels{
 		"instance_id": "",
-		"binding_id":  bindingId,
+		"binding_id":  bindingID,
 		"plan_name":   "",
 		"org":         org,
 		"space":       space,
 		"app":         app,
 	}
-	logData, err := f.cacher.LogMetadata(bindingId, rev, pLabels)
+
+	meta, err := f.cacher.LogMetadata(bindingID, rev, labels)
 	if err != nil {
-		logsSentFailure.With(pLabels).Inc()
+		logsSentFailure.With(labels).Inc()
 		return err
 	}
-	pLabels["instance_id"] = logData.InstanceParam.InstanceID
-	pLabels["plan_name"] = logData.InstanceParam.SyslogName
+	labels["instance_id"] = meta.InstanceParam.InstanceID
+	labels["plan_name"] = meta.InstanceParam.SyslogName
 
 	// catch panic to prevent exit
 	defer func() {
 		if r := recover(); r != nil {
-			logrus.WithField("binding_id", bindingId).Error(string(debug.Stack()))
-			logsSentFailure.With(pLabels).Inc()
+			logrus.WithField("binding_id", bindingID).Error(string(debug.Stack()))
+			logsSentFailure.With(labels).Inc()
 		}
 	}()
 
-	timer := prometheus.NewTimer(logsSentDuration.With(pLabels))
+	timer := prometheus.NewTimer(logsSentDuration.With(labels))
 	defer timer.ObserveDuration()
 
 	patterns := make([]string, 0)
-	if len(logData.InstanceParam.Patterns) > 0 {
-		patterns = append(patterns, model.Patterns(logData.InstanceParam.Patterns).ToList()...)
+	if len(meta.InstanceParam.Patterns) > 0 {
+		patterns = append(patterns, model.Patterns(meta.InstanceParam.Patterns).ToList()...)
 	}
 
-	timerParse := prometheus.NewTimer(logsParseDuration.With(pLabels))
-	pMes, err := f.parser.Parse(logData, message, patterns...)
+	parsed, err := f.parser.Parse(meta, message, patterns)
 	if err != nil {
-		logsSentFailure.With(pLabels).Inc()
-		timerParse.ObserveDuration()
+		logsSentFailure.With(labels).Inc()
 		return err
 	}
-	timerParse.ObserveDuration()
-	if pMes == nil {
-		logsSentFailure.With(pLabels).Inc()
+
+	if parsed == nil {
+		logsSentFailure.With(labels).Inc()
 		return nil
 	}
-	fMes, err := pMes.String()
+	fMes, err := parsed.String()
 	if err != nil {
-		logsSentFailure.With(pLabels).Inc()
+		logsSentFailure.With(labels).Inc()
 		return err
 	}
 
-	writer, err := f.foundWriter(logData.InstanceParam.SyslogName)
+	writer, err := f.foundWriter(meta.InstanceParam.SyslogName)
 	if err != nil {
-		logsSentFailure.With(pLabels).Inc()
+		logsSentFailure.With(labels).Inc()
 		return err
 	}
 
-	logrus.
-		WithField("binding_id", bindingId).
-		WithField("org", org).
-		WithField("space", space).
-		WithField("app", app).
-		Debug(fMes)
-
-	forwardTimer := prometheus.NewTimer(logsForwardDuration.With(pLabels))
-	defer forwardTimer.ObserveDuration()
 	_, err = writer.Write([]byte(fMes))
 	if err != nil {
-		logsSentFailure.With(pLabels).Inc()
+		logsSentFailure.With(labels).Inc()
 		return err
 	}
 
-	logsSent.With(pLabels).Inc()
+	logsSent.With(labels).Inc()
 	return nil
 }
 
@@ -128,18 +129,38 @@ func (f Forwarder) foundWriter(writerName string) (io.WriteCloser, error) {
 	return w, nil
 }
 
-func (f Forwarder) isAuthorized(r *http.Request) bool {
-	if !f.disallowFromExternal {
-		return true
+func alwaysAuthorized(r *http.Request) bool {
+	return true
+}
+
+// isAuthorized -
+// in: <binding-id>.logservice.service.cf.internal:8089
+func (f Forwarder) isAuthorizedVhost(r *http.Request) bool {
+	hostname := strings.Split(r.Host, ":")[0]
+	for _, host := range f.config.AllowedHosts {
+		if strings.HasSuffix(hostname, host) {
+			return true
+		}
 	}
-	host := strings.Split(r.Host, ":")[0]
-	return host == f.allowedHost
+	return false
+}
+
+// isAuthorized -
+// in: logservice.service.cf.internal:8089
+func (f Forwarder) isAuthorized(r *http.Request) bool {
+	hostname := strings.Split(r.Host, ":")[0]
+	for _, host := range f.config.AllowedHosts {
+		if hostname == host {
+			return true
+		}
+	}
+	return false
 }
 
 func (f Forwarder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	if !f.isAuthorized(r) {
+	if !f.authorizer(r) {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
 		return
@@ -179,3 +200,7 @@ func (f Forwarder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 }
+
+// Local Variables:
+// ispell-local-dictionary: "american"
+// End:

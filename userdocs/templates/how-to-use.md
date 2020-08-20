@@ -31,9 +31,8 @@ $ cf bind-service <my-app> my-log-service
 When creating or updating service thoses parameters can be passed:
 - `tags` (*Map key value*): Define your tags (see tags formatting in [tags formatting section](#tags-formatting))
 - `patterns` (*Slice of string*): Define your patter (see patterns and grok available patterns in [patterns formatting section](#patterns-formatting))
-{{ if not .Config.DisableDrainType }}- `drain_type` (*can be `logs` (similar to empty), `metrics` or `all`*): Allow metrics or both logs and metrics to be send in logservice.
+{{ if not .Config.Broker.ForceEmptyDrainType }}- `drain_type` (*can be `logs` (similar to empty), `metrics` or `all`*): Allow metrics or both logs and metrics to be send in logservice.
 (**Warning** Metrics should be use when you have not prometheus, a lot of dashboards are already available on it){{ end }}
-{{ if not .Config.PreferTLS }}- `use_tls` (*boolean*): Set to `true` for making cloud foundry send logs encrypted to logservice{{end}}
 
 
 ## Tags formatting
@@ -104,7 +103,7 @@ These key/value pairs are:
 - `@message`
 - `@raw`
 - `text`
-{{- with .Config.ParsingKeys }}
+{{- with .Config.Forwarder.ParsingKeys }}
 {{- range . }}
 - `{{ .Name }}`{{ with .Hide }} (*this key will be hidden from parsed log*){{end}}
 {{- end }}

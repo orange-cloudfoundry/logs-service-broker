@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
 	"time"
@@ -43,44 +44,72 @@ func NewMetaCacher(db *gorm.DB, cacheDuration string) (*MetaCacher, error) {
 	}, nil
 }
 
-func (c *MetaCacher) LogMetadata(bindingId string, revision int, promLabels prometheus.Labels) (model.LogMetadata, error) {
-	key := c.genKey(bindingId, revision)
-	logCached, ok := c.mapBinding.Load(key)
-	if ok && !c.mustEvict(logCached.(LogMetadataCached), revision) {
-		return logCached.(LogMetadataCached).LogMetadata, nil
+func (c *MetaCacher) LogMetadata(
+	bindingID string,
+	revision int,
+	promLabels prometheus.Labels,
+) (*model.LogMetadata, error) {
+
+	key := c.genKey(bindingID, revision)
+	iEntry, ok := c.mapBinding.Load(key)
+	if ok {
+		entry := iEntry.(*LogMetadataCached)
+		if !c.mustEvict(entry, revision) {
+			return &(entry.LogMetadata), nil
+		}
 	}
-	var logData model.LogMetadata
-	c.db.First(&logData, "binding_id = ?", bindingId)
-	if logData.BindingID == "" {
-		return model.LogMetadata{}, fmt.Errorf("binding id '%s' not found", bindingId)
+
+	var (
+		meta  model.LogMetadata
+		param model.InstanceParam
+	)
+
+	if err := c.db.First(&meta, "binding_id = ?", bindingID).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, fmt.Errorf("binding id '%s' not found", bindingID)
+		}
+		return nil, fmt.Errorf("unexpected DB error while fetching binding id '%s': %s", bindingID, err.Error())
 	}
-	var instanceParam model.InstanceParam
-	c.db.Set("gorm:auto_preload", true).First(&instanceParam, "instance_id = ? and revision = ?", logData.InstanceID, revision)
-	logData.InstanceParam = instanceParam
-	c.mapBinding.Store(key, LogMetadataCached{
-		LogMetadata: logData,
+
+	err := c.db.Set("gorm:auto_preload", true).
+		First(&param, "instance_id = ? and revision = ?", meta.InstanceID, revision).
+		Error
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			err = fmt.Errorf("instance param '%s' with revision '%s' not found", meta.InstanceID, revision)
+			return nil, err
+		}
+		err = fmt.Errorf("unexpected DB error while fetching instance param '%s/%s': %s", meta.InstanceID, revision, err.Error())
+		return nil, err
+	}
+
+	meta.InstanceParam = param
+	entry := LogMetadataCached{
+		LogMetadata: meta,
 		ExpireAt:    time.Now().Add(c.cacheDuration),
-	})
-	promLabels["instance_id"] = logData.InstanceParam.InstanceID
-	promLabels["plan_name"] = logData.InstanceParam.SyslogName
+	}
+	c.mapBinding.Store(key, &entry)
+
+	promLabels["instance_id"] = meta.InstanceParam.InstanceID
+	promLabels["plan_name"] = meta.InstanceParam.SyslogName
 	logsSentWithoutCache.With(promLabels).Inc()
-	return logData, nil
+	return &(entry.LogMetadata), nil
 }
 
-func (c *MetaCacher) mustEvict(logCached LogMetadataCached, revision int) bool {
-	if c.cacheDuration > 0 && logCached.ExpireAt.After(time.Now()) {
+func (c *MetaCacher) mustEvict(entry *LogMetadataCached, revision int) bool {
+	if c.cacheDuration > 0 && entry.ExpireAt.After(time.Now()) {
 		return true
 	}
-	if logCached.InstanceParam.Revision != revision {
+	if entry.InstanceParam.Revision != revision {
 		return true
 	}
 	return false
 }
 
-func (c *MetaCacher) EvictByBindingId(bindingId string) {
+func (c *MetaCacher) EvictByBindingID(bindingID string) {
 	toDelete := make([]string, 0)
 	c.mapBinding.Range(func(key, value interface{}) bool {
-		if strings.HasPrefix(key.(string), bindingId) {
+		if strings.HasPrefix(key.(string), bindingID) {
 			toDelete = append(toDelete, key.(string))
 		}
 		return true
@@ -90,10 +119,11 @@ func (c *MetaCacher) EvictByBindingId(bindingId string) {
 	}
 }
 
-func (c *MetaCacher) genKey(bindingId string, revision int) string {
-	return fmt.Sprintf("%s~%d", bindingId, revision)
+func (c *MetaCacher) genKey(bindingID string, revision int) string {
+	return fmt.Sprintf("%s~%d", bindingID, revision)
 }
 
+// Cleaner -
 // clean expired cached to ensure to not use to much memory
 // This need to be called in a goroutine and do a kind of stop the world during cleaning sync map
 func (c *MetaCacher) Cleaner() {
@@ -112,15 +142,22 @@ func (c *MetaCacher) cleanWhenNotInDB() {
 	if c.cacheDuration > 0 {
 		return
 	}
-	c.mapBinding.Range(func(key, value interface{}) bool {
-		var logData model.LogMetadata
-		c.db.First(&logData, "binding_id = ?", value.(LogMetadataCached).BindingID)
-		if logData.BindingID != "" {
+
+	cleanFunctor := func(key, iEntry interface{}) bool {
+		var meta model.LogMetadata
+		entry, _ := iEntry.(*LogMetadataCached)
+		err := c.db.First(&meta, "binding_id = ?", entry.BindingID).Error
+		if err == nil {
 			return true
 		}
-		c.EvictByBindingId(logData.BindingID)
+		if gorm.IsRecordNotFoundError(err) {
+			c.EvictByBindingID(entry.BindingID)
+			return true
+		}
+		log.Errorf("skipped db error: %s", err.Error())
 		return true
-	})
+	}
+	c.mapBinding.Range(cleanFunctor)
 }
 
 func (c *MetaCacher) cleanExpired() {
@@ -129,9 +166,9 @@ func (c *MetaCacher) cleanExpired() {
 	}
 	toDelete := make([]string, 0)
 	now := time.Now()
-	c.mapBinding.Range(func(key, value interface{}) bool {
-		logData := value.(LogMetadataCached)
-		if logData.ExpireAt.After(now) {
+	c.mapBinding.Range(func(key, iEntry interface{}) bool {
+		entry := iEntry.(*LogMetadataCached)
+		if entry.ExpireAt.After(now) {
 			toDelete = append(toDelete, key.(string))
 		}
 		return true
@@ -140,3 +177,7 @@ func (c *MetaCacher) cleanExpired() {
 		c.mapBinding.Delete(del)
 	}
 }
+
+// Local Variables:
+// ispell-local-dictionary: "american"
+// End:

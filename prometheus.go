@@ -34,21 +34,35 @@ var (
 		},
 		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
 	)
-	logsParseDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "logs_parse_duration",
-			Help:    "Summary of logs parse duration (this time is included in logs_sent_duration).",
-			Buckets: []float64{0.005, 0.01, 0.1, 0.25, 0.5, 1},
+	dbStatsCnxMaxOpen = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "logs_db_cnx_max_open",
+			Help: "Maximum number of open connections to the database",
 		},
-		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
 	)
-	logsForwardDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "logs_forward_duration",
-			Help:    "Summary of logs forward duration (this time is included in logs_sent_duration).",
-			Buckets: []float64{0.005, 0.01, 0.1, 0.25, 0.5, 1},
+	dbStatsCnxUsed = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "logs_db_cnx_used",
+			Help: "The number of connections currently in use",
 		},
-		[]string{"instance_id", "binding_id", "plan_name", "org", "space", "app"},
+	)
+	dbStatsCnxIdle = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "logs_db_cnx_idle",
+			Help: "The number of idle connections",
+		},
+	)
+	dbStatsCnxWaitDuration = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "logs_db_cnx_wait_duration",
+			Help: "The total time blocked waiting for a new connection in seconds",
+		},
+	)
+	dbStatus = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "logs_db_status",
+			Help: "Current status of database connectivity, 0 is error",
+		},
 	)
 )
 
@@ -56,7 +70,14 @@ func init() {
 	prometheus.MustRegister(logsSentFailure)
 	prometheus.MustRegister(logsSent)
 	prometheus.MustRegister(logsSentDuration)
-	prometheus.MustRegister(logsParseDuration)
 	prometheus.MustRegister(logsSentWithoutCache)
-	prometheus.MustRegister(logsForwardDuration)
+	prometheus.MustRegister(dbStatsCnxMaxOpen)
+	prometheus.MustRegister(dbStatsCnxUsed)
+	prometheus.MustRegister(dbStatsCnxIdle)
+	prometheus.MustRegister(dbStatsCnxWaitDuration)
+	prometheus.MustRegister(dbStatus)
 }
+
+// Local Variables:
+// ispell-local-dictionary: "american"
+// End:

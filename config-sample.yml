@@ -1,0 +1,169 @@
+# the whole config file complies to `gautocloud` provider
+# -> more info in https://github.com/cloudfoundry-community/gautocloud
+services:
+  - name: my-config
+    tags: [ "config" ]
+    credentials:
+      # log configuration section
+      log:
+        # log level to use for server
+        # -> valid values in { trace, debug, info, warn, error, fatal, panic }, default = info
+        level: info
+        # set to true to force not have color when seeing logs, default = false
+        no_color: true
+        # set to true to see logs server as json format, default = false
+        json: true
+        # set to true to enable pprof profiling /debug/pprof endpoints. default = false
+        # -> not suitable for production
+        enable_profiler: false
+
+      # http server configuration section
+      web:
+        # port for listening in http, default = 8088
+        port: 8088
+        # auto close persistent connections configuration sub-section
+        max_keep_alive:
+          # set true to disable max keep alive, default = false
+          disabled: false
+          # close persistent connection after given duration, default = 4m
+          duration: 4m
+          # consider given fraction of duration when computing connection life span, default = 1m
+          # -> life_span = duration + (rand(0..1) * fuzziness)
+          fuzziness: 1m
+
+        # https server configuration sub-section
+        tls:
+          # port for listening in https, default = 8089
+          port: 8089
+          # path to certificate file, defaults empty which disable https
+          cert_file: path/to/cert.pem
+          # path to key file, defaults empty which disable https
+          key_file:  path/to/key.pem
+
+      # broker configuration section
+      broker:
+        # [mandatory] host used to generate dashboard and documentation URLs
+        public_host: logservice.public.domain
+        # [mandatory] host used to generate broked syslog drain URL
+        drain_host: logservice.private.domain
+        # [mandatory] broker username basic auth
+        username: "username"
+        # [mandatory] broker password basic auth
+        password: "very-secret-password"
+        # set to true to force empty `drain_type` field regardless of what was requested by user
+        # default = false, allowing user to select between `logs`, `metrics` and `all` value
+        force_empty_drain_type: true
+        # set to true to embed <service-uuid> in drain url's host instead of path, default = false
+        # -> will serve drain url like `<scheme>://<service-uuid>.<syslog_drain_url>`
+        # -> instead of `<scheme>://<syslog_drain_url>/<service-uuid>`
+        virtual_host: false
+
+      # plans end forwading endpoint configuration section
+      # -> can define multiple service
+      syslog_addresses:
+        -
+          # [mandatory] unique id of your service definition for this parser and forwarder
+          id: "00000000-0000-0000-0000-000000000000"
+          # [mandatory] name of your service definition for this parser and forwarder
+          name: loghost
+          # [mandatory] list of url to forward parsed data in rfc 5424 format with content encoded in json
+          # -> available schemes:
+          #    - https, e.g.: https://my.http.server.com/receive (data will given in POST param)
+          #    - tcp, e.g.: tcp://my.syslog.server.com:514
+          #    - udp, e.g.: udp://my.syslog.server.com:514
+          #    - tcp with tls, e.g.: tcp+tls://my.syslog.server.com:514. This one accept get parameter for changing behaviour on certificate.
+          #      you can set `verify=false` to not verify tls cert and `cert=path/to/a/ca/file` to give your own self ca.
+          #      e.g.: tcp+tls://my.syslog.server.com:514?verify=false
+          urls:
+            - tcp://elk-collector.private.domain:1514
+          # set a different company id to be send in log as sd params
+          # -> this must follow syntax: object@enterprise-number
+          # -> note that 1368 is the orange enterprise number, international enterprise number can
+          # -> be found at https://www.iana.org/assignments/enterprise-numbers/enterprise-numbers
+          # -> default = logsbroker@1368
+          company_id: "logsbroker@1368"
+          # description of your service definition for this parser and forwarder
+          description: "Drain apps logs to loghost"
+          # set default `drain_type` value for this service
+          # -> value might be overiden by user or forced to empty if `force_empty_drain_type` is set
+          # -> available values:
+          #    - `logs`: drain application log metrics messages
+          #    - `metrics`: drain only metrics messages
+          #    - `all`: drain logs and metric messages
+          #    - ``: equivalent to `logs`
+          default_drain_type: ""
+          # additional information about your service
+          # -> you can describe tags that you want a user set or can set when creating an instance
+          bullets:
+            - "Available create parameters:"
+            - "- s"
+            - "- env"
+            - "- audience"
+          # list of default patterns available to users for parsing
+          # -> must be in grok format: https://streamsets.com/documentation/datacollector/latest/help/datacollector/UserGuide/Apx-GrokPatterns/GrokPatterns_title.html
+          patterns:
+            - "%{TIME} %{WORD:[@app][program]}%{SPACE}\\|%{SPACE}%{NOTSPACE:[@app][tags]}.json%{SPACE}%{GREEDYDATA:@message}"
+            - "%{TIME} %{WORD:[@app][program]}%{SPACE}\\|%{SPACE}%{NOTSPACE:[@app][tags]}.txt%{SPACE}%{GREEDYDATA:[text]}"
+            - "%{NOTSPACE:[@app][tags]}.json%{SPACE}%{GREEDYDATA:@message}"
+            - "%{NOTSPACE:[@app][tags]}.txt%{SPACE}%{GREEDYDATA:[text]}"
+            - "%{MODSECAPACHEERROR}%{GREEDYDATA:@message}"
+            - "%{MODSECRULEMSG}"
+          # list of additional labels on parsing
+          source_labels:
+            deployment: "production"
+          # default list of tags sent as structured data to syslog endpoint
+          # -> values may use templating to generate dynamicvalues, see dedicated section for details
+          tags:
+            app: "{{ .App }}{{with ( ret .Logdata \"@app.tags\" ) }}/{{.}}{{end}}"
+            env: "{{if hasSuffix .Org \"-staging\" }}dev{{ else }}prod{{ end }}"
+            audience: mydept
+            fmt: json
+            s: cloudfoundry
+
+      # forwader configuration section
+      forwarder:
+        # list of allowed host, incomming requests for any other hosts will be rejected
+        # -> default = empty list, which means all hosts are allowed
+        allowed_hosts:
+          - logservice.private.domain
+        # list of keys to process in parsing process, see dedicated section for more details
+        parsing_keys:
+          - hide: true
+            name: app.audit_data.messages.last
+
+      # configuration section for local memory cache of binding informations
+      binding_cache:
+        # time to keep binding informations in memory cache instead of quering it from database
+        # -> duration given in golang format like `3h` or `15m`
+        # -> because broked drain url embeds a revision number which increments whenever binding is updated
+        # -> we recommand to keep to default `always` value which keeps binding for a given revision
+        # -> forever in memory
+        duration: always
+
+      # database advanced configuration section
+      db:
+        # set the maximum number of open connections
+        # -> default = 100
+        cnx_max_open: 100
+        # set the maximum number of kept idle connections
+        # -> default = 20
+        cnx_max_idle: 20
+        # set the maximum time before closing idle connexion (golang duration format)
+        # -> default = 1h
+        cnx_max_life: 1h
+        # set to true to use local sqlite database as fallback (useful for testing/debuging)
+        # -> default = false
+        sqlite_fallback: false
+        # path to local sqlite database file, default = loghostsvc.db
+        sqlite_path: loghostsvc.db
+
+    # the following give an exemple of using a mysql database
+    # -> more information to https://github.com/cloudfoundry-community/gautocloud
+  - name: mysql
+    credentials:
+      user: "logservice"
+      password: "super-secret"
+      host: "database.private.domain"
+      port: "3306"
+      database: "logservice"
+      options: ""
