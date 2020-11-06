@@ -3,7 +3,24 @@ package tpl
 import (
 	"bytes"
 	"text/template"
+
+	"github.com/bluele/gcache"
 )
+
+var cachedTemplates = gcache.New(70).LFU().Build()
+
+func loadOrStoreTemplate(v string) (*template.Template, error) {
+	tplRaw, err := cachedTemplates.Get(v)
+	if err == nil {
+		return tplRaw.(*template.Template), nil
+	}
+	tpl, err := template.New("templater").Funcs(builtins).Parse(v)
+	if err != nil {
+		return nil, err
+	}
+	err = cachedTemplates.Set(v, tpl)
+	return tpl, err
+}
 
 type Templater struct {
 	data interface{}
@@ -22,7 +39,7 @@ func (t Templater) Execute(entries map[string]string) (map[string]string, error)
 	result := make(map[string]string)
 	for k, v := range entries {
 		buf := &bytes.Buffer{}
-		tpl, err := template.New("templater").Funcs(builtins).Parse(v)
+		tpl, err := loadOrStoreTemplate(v)
 		if err != nil {
 			return result, err
 		}
