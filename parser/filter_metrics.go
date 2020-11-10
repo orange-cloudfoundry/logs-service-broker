@@ -3,7 +3,7 @@ package parser
 import (
 	"strconv"
 
-	"github.com/influxdata/go-syslog/rfc5424"
+	"github.com/influxdata/go-syslog/v3/rfc5424"
 )
 
 type MetricsFilter struct {
@@ -16,7 +16,7 @@ func (f MetricsFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 		"details": "",
 	}
 	data["@type"] = "Metrics"
-	structData := *pMes.StructuredData()
+	structData := *pMes.StructuredData
 	if gauge, ok := structData[gaugeStructuredDataID]; ok {
 		data["@metric"] = f.filterGauge(gauge)
 		delete(structData, gaugeStructuredDataID)
@@ -29,7 +29,7 @@ func (f MetricsFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 		data["@metric"] = f.filterTimer(timer)
 		delete(structData, timerStructuredDataID)
 	}
-	structDataPtr := pMes.StructuredData()
+	structDataPtr := pMes.StructuredData
 	*structDataPtr = structData
 	return data
 }

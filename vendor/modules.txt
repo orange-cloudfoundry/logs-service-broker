@@ -96,9 +96,11 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/influxdata/go-syslog v1.0.1
+# github.com/influxdata/go-syslog/v3 v3.0.0
 ## explicit
-github.com/influxdata/go-syslog/rfc5424
+github.com/influxdata/go-syslog/v3
+github.com/influxdata/go-syslog/v3/common
+github.com/influxdata/go-syslog/v3/rfc5424
 # github.com/jinzhu/gorm v1.9.16
 ## explicit
 github.com/jinzhu/gorm

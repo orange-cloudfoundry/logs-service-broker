@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/ArthurHlt/grok"
-	"github.com/influxdata/go-syslog/rfc5424"
+	"github.com/influxdata/go-syslog/v3/rfc5424"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 )
@@ -57,7 +57,7 @@ func (f *AppFilter) filterProgramPattern(message string) map[string]interface{} 
 }
 
 func (f *AppFilter) FilterPatterns(pMes *rfc5424.SyslogMessage, patterns []string) map[string]interface{} {
-	return f.filterPatternsMsg(*pMes.Message(), patterns)
+	return f.filterPatternsMsg(*pMes.Message, patterns)
 }
 
 func (f *AppFilter) filterPatternsMsg(message string, patterns []string) map[string]interface{} {
@@ -125,5 +125,5 @@ func (f *AppFilter) filterJson(message string) map[string]interface{} {
 
 func (f *AppFilter) Match(pMes *rfc5424.SyslogMessage) bool {
 	r := regexp.MustCompile(`^\[APP/[A-Z]+/[A-Z]+/[0-9]+\]`)
-	return r.MatchString(*pMes.ProcID())
+	return r.MatchString(*pMes.ProcID)
 }

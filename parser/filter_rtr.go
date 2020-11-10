@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/influxdata/go-syslog/rfc5424"
+	"github.com/influxdata/go-syslog/v3/rfc5424"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 )
 
@@ -62,9 +62,9 @@ func (f RtrFilter) parse(message string) (map[string]interface{}, error) {
 
 func (f RtrFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
 	data := make(map[string]interface{})
-	values, err := f.parse(*pMes.Message())
+	values, err := f.parse(*pMes.Message)
 	if err != nil {
-		return map[string]interface{}{"@message": *pMes.Message(), "@exception": err.Error()}
+		return map[string]interface{}{"@message": *pMes.Message, "@exception": err.Error()}
 	}
 	dataRtr := make(map[string]interface{})
 	dataRtr["hostname"] = values["hostname"]
@@ -176,5 +176,5 @@ func (f RtrFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
 
 func (RtrFilter) Match(pMes *rfc5424.SyslogMessage) bool {
 	r := regexp.MustCompile(`^\[RTR/[0-9]+\]`)
-	return r.MatchString(*pMes.ProcID())
+	return r.MatchString(*pMes.ProcID)
 }

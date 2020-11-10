@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/ArthurHlt/grok"
-	"github.com/influxdata/go-syslog/rfc5424"
+	"github.com/influxdata/go-syslog/v3"
+	"github.com/influxdata/go-syslog/v3/rfc5424"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/orange-cloudfoundry/logs-service-broker/tpl"
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
@@ -27,7 +28,7 @@ const (
 
 type Parser struct {
 	filters []Filter
-	p5424   *rfc5424.Parser
+	p5424   syslog.Machine
 }
 
 type TemplateData struct {
@@ -90,12 +91,12 @@ func (p Parser) Parse(
 	message []byte,
 	patterns []string,
 ) (*rfc5424.SyslogMessage, error) {
-	parsed, err := p.p5424.Parse(message, nil)
+	parsedRaw, err := p.p5424.Parse(message)
 	if err != nil {
 		return nil, err
 	}
-
-	if parsed.Message() == nil || strings.TrimSpace(*parsed.Message()) == "" {
+	parsed := parsedRaw.(*rfc5424.SyslogMessage)
+	if parsed.Message == nil || strings.TrimSpace(*parsed.Message) == "" {
 		if !isMetrics(parsed) {
 			return nil, nil
 		}
@@ -110,7 +111,7 @@ func (p Parser) Parse(
 	tags := logData.InstanceParam.TagsToMap()
 	data := make(map[string]interface{})
 	parsed.SetParameter("ensure-init-data@0", "foo", "bar")
-	msgParam := MsgParam(*parsed.StructuredData())
+	msgParam := MsgParam(*parsed.StructuredData)
 	delete(msgParam, "ensure-init-data@0")
 	msgParam.
 		SetParameter(compID, "app", fmt.Sprintf("%s/%s/%s", org, space, app)).
@@ -163,14 +164,14 @@ func (p Parser) Parse(
 		msgParam.SetParameter(compID, k, v)
 	}
 	b, _ := json.Marshal(data)
-	structDataPtr := parsed.StructuredData()
+	structDataPtr := parsed.StructuredData
 	*structDataPtr = msgParam
 	parsed.SetMessage(string(b) + "\n")
 	return parsed, nil
 }
 
 func (p Parser) ParseHost(parsed *rfc5424.SyslogMessage) (org, space, app string) {
-	s := strings.Split(*parsed.Hostname(), ".")
+	s := strings.Split(*parsed.Hostname, ".")
 	if len(s) == 1 {
 		return "", "", s[0]
 	}
@@ -182,16 +183,16 @@ func (p Parser) ParseHost(parsed *rfc5424.SyslogMessage) (org, space, app string
 
 func (p Parser) ParseHostFromMessage(message []byte) (org, space, app string) {
 	p5424 := rfc5424.NewParser()
-	parsed, err := p5424.Parse(message, nil)
+	parsedRaw, err := p5424.Parse(message)
 	if err != nil {
 		return "", "", ""
 	}
 
-	return p.ParseHost(parsed)
+	return p.ParseHost(parsedRaw.(*rfc5424.SyslogMessage))
 }
 
 func isMetrics(parsed *rfc5424.SyslogMessage) bool {
-	structData := parsed.StructuredData()
+	structData := parsed.StructuredData
 	if structData == nil || *structData == nil {
 		return false
 	}

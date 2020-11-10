@@ -17,7 +17,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.0
-	github.com/influxdata/go-syslog v1.0.1
+	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/jinzhu/gorm v1.9.16
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/lib/pq v1.8.0 // indirect

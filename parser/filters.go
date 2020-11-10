@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/influxdata/go-syslog/rfc5424"
+	"github.com/influxdata/go-syslog/v3/rfc5424"
 )
 
 type Filter interface {

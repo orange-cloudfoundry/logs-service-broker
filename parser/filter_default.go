@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/ArthurHlt/grok"
-	"github.com/influxdata/go-syslog/rfc5424"
+	"github.com/influxdata/go-syslog/v3/rfc5424"
 )
 
 type DefaultFilter struct {
@@ -15,7 +15,7 @@ type DefaultFilter struct {
 func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
 	data := make(map[string]interface{})
 
-	srcType := strings.Replace(*pMes.ProcID(), "[", "", 1)
+	srcType := strings.Replace(*pMes.ProcID, "[", "", 1)
 	srcType = strings.Replace(srcType, "]", "", 1)
 	procSplit := strings.Split(srcType, "/")
 
@@ -40,16 +40,16 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 		"type":    srcType,
 		"details": details,
 	}
-	data["@shipper"] = map[string]interface{}{"name": "log-service", "priority": *pMes.Priority()}
+	data["@shipper"] = map[string]interface{}{"name": "log-service", "priority": *pMes.Priority}
 	data["@input"] = "syslog"
 	data["@type"] = "LogMessage"
-	data["@timestamp"] = *pMes.Timestamp()
-	if pMes.Message() != nil && strings.TrimSpace(*pMes.Message()) != "" {
+	data["@timestamp"] = *pMes.Timestamp
+	if pMes.Message != nil && strings.TrimSpace(*pMes.Message) != "" {
 		data["@level"] = "INFO"
-		data["@message"] = *pMes.Message()
+		data["@message"] = *pMes.Message
 	}
 
-	pData := *pMes.StructuredData()
+	pData := *pMes.StructuredData
 	mesData := make(map[string]string)
 	for _, vMap := range pData {
 		for k, v := range vMap {
