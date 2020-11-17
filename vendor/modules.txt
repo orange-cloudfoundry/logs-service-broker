@@ -8,9 +8,6 @@ github.com/ArthurHlt/grok
 github.com/azer/snakecase
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
-## explicit
-github.com/bluele/gcache
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
 # github.com/cloudfoundry-community/gautocloud v1.1.6

@@ -2,24 +2,34 @@ package tpl
 
 import (
 	"bytes"
+	"hash/fnv"
+	"sync"
 	"text/template"
-
-	"github.com/bluele/gcache"
 )
 
-var cachedTemplates = gcache.New(70).LFU().Build()
+var cachedTemplates = &sync.Map{}
 
 func loadOrStoreTemplate(v string) (*template.Template, error) {
-	tplRaw, err := cachedTemplates.Get(v)
-	if err == nil {
+	key := hashKey(v)
+	tplRaw, hasReceive := cachedTemplates.Load(key)
+	if hasReceive && tplRaw != nil {
 		return tplRaw.(*template.Template), nil
 	}
 	tpl, err := template.New("templater").Funcs(builtins).Parse(v)
 	if err != nil {
 		return nil, err
 	}
-	err = cachedTemplates.Set(v, tpl)
-	return tpl, err
+	if hasReceive {
+		return tpl, nil
+	}
+	cachedTemplates.Store(key, tpl)
+	return tpl, nil
+}
+
+func hashKey(v string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(v))
+	return h.Sum32()
 }
 
 type Templater struct {

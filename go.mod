@@ -5,7 +5,6 @@ go 1.15
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/ArthurHlt/grok v1.0.4
-	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/cloudfoundry-community/gautocloud v1.1.6
 	github.com/cloudfoundry-community/go-cfenv v1.18.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20200910202707-1e08a3fab204 // indirect
