@@ -3,6 +3,7 @@ package tpl
 import (
 	"bytes"
 	"hash/fnv"
+	"strings"
 	"sync"
 	"text/template"
 )
@@ -48,6 +49,11 @@ func (t Templater) Execute(entries map[string]string) (map[string]string, error)
 	}
 	result := make(map[string]string)
 	for k, v := range entries {
+		// do not do templating if there is no inside
+		if !strings.Contains(v, "{{") {
+			result[k] = v
+			continue
+		}
 		buf := &bytes.Buffer{}
 		tpl, err := loadOrStoreTemplate(v)
 		if err != nil {
