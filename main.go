@@ -338,6 +338,13 @@ func (a *app) initializeMetaCache(db *gorm.DB) (*MetaCacher, error) {
 		return nil, err
 	}
 	go cacher.Cleaner()
+	if a.config.BindingCache.PreCache {
+		err := cacher.PreCache()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return cacher, nil
 }
 

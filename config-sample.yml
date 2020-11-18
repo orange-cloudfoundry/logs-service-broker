@@ -38,7 +38,7 @@ services:
           # path to certificate file, defaults empty which disable https
           cert_file: path/to/cert.pem
           # path to key file, defaults empty which disable https
-          key_file:  path/to/key.pem
+          key_file: path/to/key.pem
 
       # broker configuration section
       broker:
@@ -61,8 +61,7 @@ services:
       # plans end forwading endpoint configuration section
       # -> can define multiple service
       syslog_addresses:
-        -
-          # [mandatory] unique id of your service definition for this parser and forwarder
+        - # [mandatory] unique id of your service definition for this parser and forwarder
           id: "00000000-0000-0000-0000-000000000000"
           # [mandatory] name of your service definition for this parser and forwarder
           name: loghost
@@ -139,6 +138,9 @@ services:
         # -> we recommand to keep to default `always` value which keeps binding for a given revision
         # -> forever in memory
         duration: always
+        # if pre_cache set to true, all binding with latest revision will be preloaded in cacher at initialization
+        # this make avoid storm on db when restart logservice with log incoming
+        pre_cache: true
 
       # database advanced configuration section
       db:

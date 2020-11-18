@@ -83,6 +83,7 @@ type DBConfig struct {
 
 type BindingCacheConfig struct {
 	Duration string `cloud:"duration" cloud-default:"10m"`
+	PreCache bool   `cloud:"pre_cache"`
 }
 
 type ForwarderConfig struct {

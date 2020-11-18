@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
@@ -42,6 +43,22 @@ func NewMetaCacher(db *gorm.DB, cacheDuration string) (*MetaCacher, error) {
 		cacheDuration: cd,
 		mapBinding:    &sync.Map{},
 	}, nil
+}
+
+func (c *MetaCacher) PreCache() error {
+	metadatas := make([]model.LogMetadata, 0)
+	err := c.db.Preload("InstanceParam", func(db *gorm.DB) *gorm.DB {
+		return db.Set("gorm:auto_preload", true).Order("revision desc")
+	}).Find(&metadatas).Error
+	for _, meta := range metadatas {
+		key := c.genKey(meta.BindingID, meta.InstanceParam.Revision)
+		entry := LogMetadataCached{
+			LogMetadata: meta,
+			ExpireAt:    time.Now().Add(c.cacheDuration),
+		}
+		c.mapBinding.Store(key, &entry)
+	}
+	return err
 }
 
 func (c *MetaCacher) LogMetadata(
