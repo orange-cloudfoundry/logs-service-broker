@@ -30,7 +30,7 @@ require (
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/pivotal-cf/brokerapi v6.4.2+incompatible
 	github.com/prometheus/client_golang v1.7.1
-	github.com/prometheus/common v0.14.0 // indirect
+	github.com/prometheus/common v0.14.0
 	github.com/prometheus/procfs v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/sirupsen/logrus v1.7.0
@@ -42,6 +42,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
 	golang.org/x/sys v0.0.0-20201007082116-8445cc04cbdf // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 )

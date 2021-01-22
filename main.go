@@ -29,6 +29,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gormigrate.v1"
+	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/prometheus/common/version"
 )
 
 type writerMap = map[string]io.WriteCloser
@@ -37,6 +39,10 @@ type app struct {
 }
 
 func main() {
+	kingpin.Version(version.Print("logs-service-broker"))
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
+
 	a := newApp()
 	a.run()
 }
