@@ -93,10 +93,10 @@ func (c *MetaCacher) LogMetadata(
 		Error
 	if err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			err = fmt.Errorf("instance param '%s' with revision '%s' not found", meta.InstanceID, revision)
+			err = fmt.Errorf("instance param '%s' with revision '%d' not found", meta.InstanceID, revision)
 			return nil, err
 		}
-		err = fmt.Errorf("unexpected DB error while fetching instance param '%s/%s': %s", meta.InstanceID, revision, err.Error())
+		err = fmt.Errorf("unexpected DB error while fetching instance param '%s/%d': %s", meta.InstanceID, revision, err.Error())
 		return nil, err
 	}
 
