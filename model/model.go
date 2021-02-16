@@ -70,7 +70,6 @@ type BrokerConfig struct {
 	Username            string `cloud:"username"`
 	Password            string `cloud:"password"`
 	ForceEmptyDrainType bool   `cloud:"force_empty_drain_type"`
-	VirtualHost         bool   `cloud:"virtual_host"`
 }
 
 type DBConfig struct {

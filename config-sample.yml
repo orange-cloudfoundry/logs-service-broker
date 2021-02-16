@@ -53,10 +53,6 @@ services:
         # set to true to force empty `drain_type` field regardless of what was requested by user
         # default = false, allowing user to select between `logs`, `metrics` and `all` value
         force_empty_drain_type: true
-        # set to true to embed <service-uuid> in drain url's host instead of path, default = false
-        # -> will serve drain url like `<scheme>://<service-uuid>.<syslog_drain_url>`
-        # -> instead of `<scheme>://<syslog_drain_url>/<service-uuid>`
-        virtual_host: false
 
       # plans end forwading endpoint configuration section
       # -> can define multiple service

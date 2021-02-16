@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/orange-cloudfoundry/logs-service-broker/api"
+	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
+	"github.com/orange-cloudfoundry/logs-service-broker/metrics"
 	"io"
 	"math/rand"
 	"net"
@@ -27,10 +30,10 @@ import (
 	"github.com/orange-cloudfoundry/logs-service-broker/userdocs"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/gormigrate.v1"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"github.com/prometheus/common/version"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/alecthomas/kingpin.v2"
+	"gopkg.in/gormigrate.v1"
 )
 
 type writerMap = map[string]io.WriteCloser
@@ -194,30 +197,30 @@ func (a *app) watchDB(db *gorm.DB) {
 	go func() {
 		for {
 			stats := db.DB().Stats()
-			dbStatsCnxMaxOpen.Set(float64(stats.MaxOpenConnections))
-			dbStatsCnxUsed.Set(float64(stats.InUse))
-			dbStatsCnxIdle.Set(float64(stats.Idle))
-			dbStatsCnxWaitDuration.Set(stats.WaitDuration.Seconds())
+			metrics.DbStatsCnxMaxOpen.Set(float64(stats.MaxOpenConnections))
+			metrics.DbStatsCnxUsed.Set(float64(stats.InUse))
+			metrics.DbStatsCnxIdle.Set(float64(stats.Idle))
+			metrics.DbStatsCnxWaitDuration.Set(stats.WaitDuration.Seconds())
 
 			err := db.DB().Ping()
 			if err != nil {
 				log.Errorf("[watchdog] failed to ping database, try reconnect: %s", err.Error())
 				if err = a.reconnectDB(db); err != nil {
-					dbStatus.Set(float64(0))
+					metrics.DbStatus.Set(float64(0))
 					time.Sleep(30 * time.Second)
 					continue
 				}
 			}
-			dbStatus.Set(float64(1))
+			metrics.DbStatus.Set(float64(1))
 			time.Sleep(2 * time.Minute)
 		}
 	}()
 }
 
 func (a *app) migrateDB(db *gorm.DB) error {
-	migrations := Migrations{
+	migrations := dbservices.Migrations{
 		Config:     a.config,
-		Migrations: gormMigration,
+		Migrations: dbservices.GormMigration(),
 	}
 	migrate := gormigrate.New(db, gormigrate.DefaultOptions, migrations.ToGormMigrate())
 	migrate.InitSchema(func(db *gorm.DB) error {
@@ -338,8 +341,8 @@ func (a *app) maxKeepAliveDecorator(h http.Handler) http.Handler {
 	})
 }
 
-func (a *app) initializeMetaCache(db *gorm.DB) (*MetaCacher, error) {
-	cacher, err := NewMetaCacher(db, a.config.BindingCache.Duration)
+func (a *app) initializeMetaCache(db *gorm.DB) (*dbservices.MetaCacher, error) {
+	cacher, err := dbservices.NewMetaCacher(db, a.config.BindingCache.Duration)
 	if err != nil {
 		return nil, err
 	}
@@ -370,9 +373,9 @@ func (a *app) initializeWriters() (writerMap, error) {
 // 1. create broker implementation instance
 // 2. decorate with standard web broker interface
 // 3. bind to /v2 routes
-func (a *app) registerBroker(router *mux.Router, db *gorm.DB, cacher *MetaCacher) {
+func (a *app) registerBroker(router *mux.Router, db *gorm.DB, cacher *dbservices.MetaCacher) {
 	// 1.
-	broker := NewLoghostBroker(db, cacher, a.config)
+	broker := api.NewLoghostBroker(db, cacher, a.config)
 
 	// 2.
 	lag := lager.NewLogger("broker")
@@ -400,23 +403,10 @@ func (a *app) registerDoc(router *mux.Router, db *gorm.DB) {
 // registerForwarder
 // 1. wrap forward handler with auto-close cnx decorator
 // 2. handle request like '{bindingID}.{drainHost}'
-func (a *app) registerForwarder(router *mux.Router, writers writerMap, cacher *MetaCacher) {
-	f := NewForwarder(cacher, writers, a.config)
+func (a *app) registerForwarder(router *mux.Router, writers writerMap, cacher *dbservices.MetaCacher) {
+	f := api.NewForwarder(cacher, writers, a.config)
 
-	// 1.
 	decorated := a.maxKeepAliveDecorator(f)
-
-	// 2.
-	if a.config.Broker.VirtualHost {
-		log.Info("[forwarder] enabling virutal host")
-		matcherFunc := func(req *http.Request, m *mux.RouteMatch) bool {
-			if !strings.HasSuffix(req.Host, a.config.Broker.DrainHost) {
-				return false
-			}
-			return strings.TrimSuffix(req.Host, a.config.Broker.DrainHost) != ""
-		}
-		router.NewRoute().MatcherFunc(matcherFunc).Handler(decorated)
-	}
 
 	router.Handle("/{bindingId}", decorated)
 }
