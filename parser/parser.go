@@ -24,11 +24,13 @@ const (
 	gaugeStructuredDataID   = "gauge@47450"
 	counterStructuredDataID = "counter@47450"
 	timerStructuredDataID   = "timer@47450"
+	tagsStructuredDataID    = "tags@47450"
 )
 
 type Parser struct {
-	filters []Filter
-	p5424   syslog.Machine
+	filters                  []Filter
+	p5424                    syslog.Machine
+	ignoreTagsStructuredData bool
 }
 
 type TemplateData struct {
@@ -69,14 +71,21 @@ func (p MsgParam) SetParameter(cid, key, val string) MsgParam {
 	return p
 }
 
-func NewParser(parsingKeys []model.ParsingKey) *Parser {
+func NewParser(parsingKeys []model.ParsingKey, ignoreTagsStructuredData bool) *Parser {
 	grokParser, _ := grok.NewWithConfig(&grok.Config{
 		NamedCapturesOnly: true,
 	})
-	grokParser.AddPatternsFromMap(patterns)
-	grokParser.AddPatternsFromMap(programPatternsToGrokPattern())
+	err := grokParser.AddPatternsFromMap(patterns)
+	if err != nil {
+		panic(err)
+	}
+	err = grokParser.AddPatternsFromMap(programPatternsToGrokPattern())
+	if err != nil {
+		panic(err)
+	}
 	return &Parser{
-		p5424: rfc5424.NewParser(),
+		ignoreTagsStructuredData: ignoreTagsStructuredData,
+		p5424:                    rfc5424.NewParser(),
 		filters: []Filter{
 			&DefaultFilter{grokParser},
 			&MetricsFilter{},
@@ -113,6 +122,9 @@ func (p Parser) Parse(
 	parsed.SetParameter("ensure-init-data@0", "foo", "bar")
 	msgParam := MsgParam(*parsed.StructuredData)
 	delete(msgParam, "ensure-init-data@0")
+	if p.ignoreTagsStructuredData {
+		delete(msgParam, tagsStructuredDataID)
+	}
 	msgParam.
 		SetParameter(compID, "app", fmt.Sprintf("%s/%s/%s", org, space, app)).
 		SetParameter(compID, "space", space).

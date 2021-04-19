@@ -11,7 +11,10 @@ import (
 var cachedTemplates = &sync.Map{}
 
 func loadOrStoreTemplate(v string) (*template.Template, error) {
-	key := hashKey(v)
+	key, err := hashKey(v)
+	if err != nil {
+		return nil, err
+	}
 	tplRaw, hasReceive := cachedTemplates.Load(key)
 	if hasReceive && tplRaw != nil {
 		return tplRaw.(*template.Template), nil
@@ -27,10 +30,13 @@ func loadOrStoreTemplate(v string) (*template.Template, error) {
 	return tpl, nil
 }
 
-func hashKey(v string) uint32 {
+func hashKey(v string) (uint32, error) {
 	h := fnv.New32a()
-	h.Write([]byte(v))
-	return h.Sum32()
+	_, err := h.Write([]byte(v))
+	if err != nil {
+		return 0, err
+	}
+	return h.Sum32(), err
 }
 
 type Templater struct {
@@ -59,8 +65,10 @@ func (t Templater) Execute(entries map[string]string) (map[string]string, error)
 		if err != nil {
 			return result, err
 		}
-		tpl.Execute(buf, t.data)
-
+		err = tpl.Execute(buf, t.data)
+		if err != nil {
+			return result, err
+		}
 		result[k] = buf.String()
 	}
 

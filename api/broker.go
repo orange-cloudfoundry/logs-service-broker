@@ -72,8 +72,10 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 	}
 
 	var ctx model.ContextProvision
-	json.Unmarshal([]byte(details.RawContext), &ctx)
-
+	err = json.Unmarshal(details.RawContext, &ctx)
+	if err != nil {
+		return domain.ProvisionedServiceSpec{}, fmt.Errorf("Error when loading context: %s", err.Error())
+	}
 	var params model.ProvisionParams
 	err = json.Unmarshal(details.RawParameters, &params)
 	if err != nil && len(details.RawParameters) > 0 {
@@ -172,9 +174,12 @@ func (b LoghostBroker) Bind(
 
 	var instanceParam model.InstanceParam
 	var ctx model.ContextBind
-	json.Unmarshal([]byte(details.RawContext), &ctx)
+	err := json.Unmarshal(details.RawContext, &ctx)
+	if err != nil {
+		return domain.Binding{}, fmt.Errorf("Error when loading context: %s", err.Error())
+	}
 
-	err := b.db.Order("revision desc").First(&instanceParam, "instance_id = ?", instanceID).Error
+	err = b.db.Order("revision desc").First(&instanceParam, "instance_id = ?", instanceID).Error
 	if err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			return domain.Binding{}, fmt.Errorf("instance id '%s' not found", instanceID)
@@ -270,8 +275,10 @@ func (b LoghostBroker) Update(
 	}
 
 	var ctx model.ContextProvision
-	json.Unmarshal([]byte(details.RawContext), &ctx)
-
+	err = json.Unmarshal(details.RawContext, &ctx)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, fmt.Errorf("Error when loading context: %s", err.Error())
+	}
 	var params model.ProvisionParams
 	err = json.Unmarshal(details.RawParameters, &params)
 	if err != nil && len(details.RawParameters) > 0 {

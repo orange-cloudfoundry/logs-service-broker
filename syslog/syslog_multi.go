@@ -34,7 +34,7 @@ func (t *MultiWriter) Write(b []byte) (int, error) {
 			_, err := w.Write(b)
 			if err != nil {
 				mutex.Lock()
-				multierror.Append(result, err)
+				result = multierror.Append(result, err)
 				mutex.Unlock()
 			}
 		}(w)
@@ -49,7 +49,7 @@ func (t *MultiWriter) Close() error {
 	for _, w := range t.mw {
 		err := w.Close()
 		if err != nil {
-			multierror.Append(result, err)
+			result = multierror.Append(result, err)
 		}
 	}
 	return result

@@ -17,12 +17,14 @@ func init() {
 }
 
 const (
-	PlatformCF   = "cloudfoundry"
-	PlatformK8s  = "kubernetes"
-	RevKey       = "rev"
-	EndOfLifeKey = "end-of-life"
-	DrainTypeKey = "drain-type"
+	PlatformCF              = "cloudfoundry"
+	PlatformK8s             = "kubernetes"
+	RevKey                  = "rev"
+	EndOfLifeKey ContextKey = "end-of-life"
+	DrainTypeKey            = "drain-type"
 )
+
+type ContextKey string
 
 type LogConfig struct {
 	Level          string `cloud:"level"`
@@ -46,10 +48,9 @@ type KeepAliveConfig struct {
 }
 
 type WebConfig struct {
-	Port                 int             `cloud:"port"`
-	MaxKeepAlive         KeepAliveConfig `cloud:"max_keep_alive"`
-	TLS                  WebTLSConfig    `cloud:"tls"`
-	maxKeepAliveDuration *time.Duration
+	Port         int             `cloud:"port"`
+	MaxKeepAlive KeepAliveConfig `cloud:"max_keep_alive"`
+	TLS          WebTLSConfig    `cloud:"tls"`
 }
 
 // GetPort - Compute port according to gautocloud and configuration
@@ -86,8 +87,9 @@ type BindingCacheConfig struct {
 }
 
 type ForwarderConfig struct {
-	AllowedHosts []string     `cloud:"allowed_hosts"`
-	ParsingKeys  []ParsingKey `cloud:"parsing_keys"`
+	AllowedHosts             []string     `cloud:"allowed_hosts"`
+	ParsingKeys              []ParsingKey `cloud:"parsing_keys"`
+	IgnoreTagsStructuredData bool         `cloud:"ignore_tags_structured_data"`
 }
 
 func (f *KeepAliveConfig) GetDuration() *time.Duration {
@@ -307,10 +309,8 @@ func (dt *DrainType) UnmarshalJSON(b []byte) error {
 		return nil
 	case "all":
 		return nil
-	default:
-		return fmt.Errorf("Only drain_type `metrics` or `logs` or `all` or empty value is allowed (which means only logs)")
 	}
-	return nil
+	return fmt.Errorf("Only drain_type `metrics` or `logs` or `all` or empty value is allowed (which means only logs)")
 }
 
 type Patterns []Pattern
@@ -324,7 +324,7 @@ func (p Patterns) ToList() []string {
 }
 
 func ListToPatterns(l []string) []Pattern {
-	if l == nil || len(l) == 0 {
+	if len(l) == 0 {
 		return []Pattern{}
 	}
 	patterns := make([]Pattern, len(l))
@@ -339,7 +339,7 @@ func ListToPatterns(l []string) []Pattern {
 }
 
 func MapToLabels(m map[string]string) []Label {
-	if m == nil || len(m) == 0 {
+	if len(m) == 0 {
 		return []Label{}
 	}
 	tags := make([]Label, len(m))
@@ -355,7 +355,7 @@ func MapToLabels(m map[string]string) []Label {
 }
 
 func MapToSourceLabels(m map[string]string) []SourceLabel {
-	if m == nil || len(m) == 0 {
+	if len(m) == 0 {
 		return []SourceLabel{}
 	}
 	tags := make([]SourceLabel, len(m))

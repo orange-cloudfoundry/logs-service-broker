@@ -23,7 +23,7 @@ func HttpDial(addr string) (*HttpWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	inGzip := true
+	inGzip := false
 	inGzipRaw := u.Query().Get(QueryInGzip)
 
 	if inGzipRaw != "" {

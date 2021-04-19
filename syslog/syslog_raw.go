@@ -33,8 +33,7 @@ type serverConn interface {
 }
 
 type netConn struct {
-	local bool
-	conn  net.Conn
+	conn net.Conn
 }
 
 func NewWriter(addresses ...string) (io.WriteCloser, error) {

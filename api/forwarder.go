@@ -38,7 +38,7 @@ func NewForwarder(
 	f := &Forwarder{
 		sw:         writers,
 		cacher:     cacher,
-		parser:     parser.NewParser(config.Forwarder.ParsingKeys),
+		parser:     parser.NewParser(config.Forwarder.ParsingKeys, config.Forwarder.IgnoreTagsStructuredData),
 		config:     &config.Forwarder,
 		authorizer: alwaysAuthorized,
 	}

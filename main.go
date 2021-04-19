@@ -102,10 +102,8 @@ func (a *app) finish(db *gorm.DB, writers writerMap) {
 	if db != nil {
 		db.Close()
 	}
-	if writers != nil {
-		for _, w := range writers {
-			w.Close()
-		}
+	for _, w := range writers {
+		w.Close()
 	}
 }
 
@@ -138,7 +136,7 @@ func (a *app) reconnectDB(db *gorm.DB) error {
 		return err
 	}
 
-	(*db.DB()) = *(newDB.DB())
+	*db.DB() = *(newDB.DB()) //nolint
 	err = db.DB().Ping()
 	if err != nil {
 		log.Errorf("[watchdog] failed to ping database after recreate: %s", err.Error())
@@ -315,7 +313,6 @@ func (a *app) startServer(h http.Handler, port int, certFile, keyFile *string) *
 		}
 		if err != nil && err != http.ErrServerClosed {
 			panic(err)
-			os.Exit(1)
 		}
 	}()
 	return server

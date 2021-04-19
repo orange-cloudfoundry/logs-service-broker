@@ -27,6 +27,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/o1egl/gormrus v0.0.0-20190416211302-fde1f6a23457
 	github.com/onsi/ginkgo v1.12.1
+	github.com/onsi/gomega v1.10.5
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/pivotal-cf/brokerapi v6.4.2+incompatible
