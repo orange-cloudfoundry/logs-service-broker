@@ -34,12 +34,6 @@ jobs:
 
       - name: tests modules
         run: |
-          go mod vendor
-          if [ ! -z "$(git status --porcelain)" ]; then
-            echo "::error::vendor directory if not synched with go.mod, please run go mod vendor"
-            exit 1
-          fi
-
           go mod tidy
           if [ ! -z "$(git status --porcelain)" ]; then
             echo "::error::modules are not tidy, please run go mod tidy"
