@@ -159,7 +159,7 @@ func (f RtrFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
 		data[k] = v
 	}
 
-	data["@message"] = fmt.Sprintf(
+	data[MessageKey] = fmt.Sprintf(
 		"%d %s %s (%d ms)",
 		dataRtr["status"],
 		dataRtr["verb"],

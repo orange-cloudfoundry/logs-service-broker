@@ -27,9 +27,9 @@ func (f *AppFilter) parseJsonMapValue(m map[string]interface{}) map[string]inter
 		m = utils.MergeMap(m, f.filterJson(fmt.Sprint(msgJson)))
 		delete(m, "@json")
 	}
-	if msg, ok := m["@message"]; ok && regexJson.MatchString(fmt.Sprint(msg)) {
+	if msg, ok := m[MessageKey]; ok && regexJson.MatchString(fmt.Sprint(msg)) {
 		m = utils.MergeMap(m, f.filterJson(fmt.Sprint(msg)))
-		delete(m, "@message")
+		delete(m, MessageKey)
 	}
 	return m
 }
@@ -62,7 +62,9 @@ func (f *AppFilter) FilterPatterns(pMes *rfc5424.SyslogMessage, patterns []strin
 
 func (f *AppFilter) filterPatternsMsg(message string, patterns []string) map[string]interface{} {
 	if regexJson.MatchString(message) {
-		return f.filterJson(message)
+		m := f.filterJson(message)
+		m[MessageKey] = ""
+		return m
 	}
 	resultMap := make(map[string]interface{})
 	for _, pattern := range patterns {
@@ -89,12 +91,12 @@ func (f *AppFilter) filterPatternsMsg(message string, patterns []string) map[str
 	if textValue != "" {
 		resultMap = utils.MergeMap(resultMap, f.filterPatternsMsg(textValue, patterns))
 	}
-	msg, hasMsg := resultMap["@message"]
+	msg, hasMsg := resultMap[MessageKey]
 	if hasMsg && !msgKey.Hide && msgKey.Name != "" {
 		resultMap = utils.MergeMap(resultMap, utils.CreateMapFromDelim(msgKey.Name, msg))
 	}
 	if !hasMsg {
-		resultMap["@message"] = ""
+		resultMap[MessageKey] = ""
 	}
 	return resultMap
 }
@@ -116,7 +118,7 @@ func (f *AppFilter) filterJson(message string) map[string]interface{} {
 	data := make(map[string]interface{})
 	err := json.Unmarshal([]byte(message), &data)
 	if err != nil {
-		data["@message"] = message
+		data[MessageKey] = message
 		data["@exception"] = err.Error()
 		return data
 	}

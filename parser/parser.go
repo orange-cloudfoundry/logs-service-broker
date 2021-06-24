@@ -14,7 +14,10 @@ import (
 	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 )
 
-const defCompanyID = "logsbroker@1368"
+const (
+	defCompanyID = "logsbroker@1368"
+	MessageKey   = "@message"
+)
 
 // this is from https://github.com/cloudfoundry/cf-syslog-drain-release/blob/f13fd13ec6d08822f261cbb575aa5f357ab32f0d/src/adapter/internal/egress/tcp.go#L21-L24
 // gaugeStructuredDataID contains the registered enterprise ID for the Cloud
@@ -48,7 +51,7 @@ type MsgParam map[string]map[string]string
 
 var defaultParsingKeys = []model.ParsingKey{
 	{
-		Name: "@message",
+		Name: MessageKey,
 	},
 	{
 		Name: "@raw",
@@ -146,6 +149,14 @@ func (p Parser) Parse(
 		}
 		data = utils.MergeMap(data, values)
 	}
+
+	// clean empty message
+	if mess, ok := data[MessageKey]; ok {
+		if str, ok := mess.(string); ok && str == "" {
+			delete(data, MessageKey)
+		}
+	}
+
 	if len(logData.InstanceParam.SourceLabels) > 0 {
 		currentSource := make(map[string]interface{})
 		if _, ok := data["@source"]; ok {

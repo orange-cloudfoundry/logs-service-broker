@@ -31,6 +31,7 @@ func (f MetricsFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 	}
 	structDataPtr := pMes.StructuredData
 	*structDataPtr = structData
+	data[MessageKey] = ""
 	return data
 }
 

@@ -46,7 +46,7 @@ func (f DefaultFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{
 	data["@timestamp"] = *pMes.Timestamp
 	if pMes.Message != nil && strings.TrimSpace(*pMes.Message) != "" {
 		data["@level"] = "INFO"
-		data["@message"] = *pMes.Message
+		data[MessageKey] = *pMes.Message
 	}
 
 	pData := *pMes.StructuredData
