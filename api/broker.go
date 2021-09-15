@@ -4,14 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
 	"net/url"
 	"strings"
 
+	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
+	"github.com/orange-cloudfoundry/logs-service-broker/utils"
+
 	"github.com/jinzhu/gorm"
-	"github.com/orange-cloudfoundry/logs-service-broker/model"
 	"github.com/pivotal-cf/brokerapi/domain"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/orange-cloudfoundry/logs-service-broker/model"
 )
 
 const serviceId = "11c147f0-297f-4fd6-9401-e94e64f37094"
@@ -82,7 +85,8 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 		return domain.ProvisionedServiceSpec{}, fmt.Errorf("Error when loading params: %s", err.Error())
 	}
 
-	tags := syslogAddr.Tags
+	// copy to not modify parent map
+	tags := utils.CopyMapString(syslogAddr.Tags)
 	if tags == nil {
 		tags = make(map[string]string)
 	}
@@ -120,7 +124,7 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 		Namespace:    ctx.Namespace,
 		SyslogName:   syslogAddr.Name,
 		Patterns:     model.ListToPatterns(patterns),
-		SourceLabels: model.MapToSourceLabels(syslogAddr.SourceLabels),
+		SourceLabels: model.MapToSourceLabels(utils.CopyMapString(syslogAddr.SourceLabels)),
 		Tags:         model.MapToLabels(tags),
 		CompanyID:    syslogAddr.CompanyID,
 		UseTls:       params.UseTLS || b.config.HasTLS(),
@@ -284,7 +288,9 @@ func (b LoghostBroker) Update(
 	if err != nil && len(details.RawParameters) > 0 {
 		return domain.UpdateServiceSpec{}, fmt.Errorf("Error when loading params: %s", err.Error())
 	}
-	tags := syslogAddr.Tags
+
+	// copy to not modify parent map
+	tags := utils.CopyMapString(syslogAddr.Tags)
 	if tags == nil {
 		tags = make(map[string]string)
 	}
@@ -321,7 +327,7 @@ func (b LoghostBroker) Update(
 		Namespace:    instanceParam.Namespace,
 		SyslogName:   syslogAddr.Name,
 		Patterns:     model.ListToPatterns(patterns),
-		SourceLabels: model.MapToSourceLabels(syslogAddr.SourceLabels),
+		SourceLabels: model.MapToSourceLabels(utils.CopyMapString(syslogAddr.SourceLabels)),
 		Tags:         model.MapToLabels(tags),
 		CompanyID:    syslogAddr.CompanyID,
 		UseTls:       b.config.HasTLS(),

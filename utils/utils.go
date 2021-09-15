@@ -34,6 +34,17 @@ func MergeMap(parent, partial map[string]interface{}) map[string]interface{} {
 	return parent
 }
 
+func CopyMapString(src map[string]string) map[string]string {
+	if src == nil {
+		return nil
+	}
+	newMap := make(map[string]string)
+	for k, v := range src {
+		newMap[k] = v
+	}
+	return newMap
+}
+
 func Round(f float64) float64 {
 	return math.Floor(f + .5)
 }
