@@ -17,7 +17,7 @@ require (
 	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/jinzhu/gorm v1.9.16
 	github.com/karrick/godirwalk v1.16.1 // indirect
-	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/o1egl/gormrus v0.0.0-20190416211302-fde1f6a23457
 	github.com/onsi/ginkgo v1.16.4
@@ -35,7 +35,11 @@ require (
 	gopkg.in/gormigrate.v1 v1.6.0
 )
 
+require github.com/cloudfoundry/go-loggregator v7.4.0+incompatible
+
 require (
+	code.cloudfoundry.org/go-loggregator v7.4.0+incompatible // indirect
+	code.cloudfoundry.org/rfc5424 v0.0.0-20201103192249-000122071b78 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/azer/snakecase v1.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -75,6 +79,8 @@ require (
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
+	google.golang.org/grpc v1.40.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect

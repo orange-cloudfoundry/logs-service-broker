@@ -5,3 +5,4 @@
 /*.sql
 /*.db*
 /dist
+*.coverprofile
