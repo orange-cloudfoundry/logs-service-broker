@@ -182,8 +182,8 @@ github.com/nxadm/tail/winfile
 # github.com/o1egl/gormrus v0.0.0-20190416211302-fde1f6a23457
 ## explicit
 github.com/o1egl/gormrus
-# github.com/onsi/ginkgo v1.16.4
-## explicit; go 1.15
+# github.com/onsi/ginkgo v1.16.5
+## explicit; go 1.16
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/formatter
