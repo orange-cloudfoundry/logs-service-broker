@@ -9,7 +9,7 @@ require (
 	github.com/cloudfoundry-community/gautocloud v1.1.8
 	github.com/drewolson/testflight v1.0.0 // indirect
 	github.com/gobuffalo/logger v1.0.6 // indirect
-	github.com/gobuffalo/packr/v2 v2.8.2
+	github.com/gobuffalo/packr/v2 v2.8.3
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/errwrap v1.1.0 // indirect
