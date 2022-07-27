@@ -132,11 +132,13 @@ var _ = Describe("Parser", func() {
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/TOMCAT/19]", 19)
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/CONFIG-SERVER/0]", 0)
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/CONFIG-SERVER/19]", 19)
+			ParseProcLog("[APP/PROC/WEB/SIDECAR/[CONFIG-SERVER_1.6#'{\"label\":\"test\"}'/0/15]", 15)
 			ParseTaskLog("[APP/TASK/MYTASK/0]", float64(0))
 			ParseTaskLog("[APP/TASK/MYTASK/19]", float64(19))
 			ParseTaskLog("[APP/TASK/MY-TASK/0]", float64(0))
 			ParseTaskLog("[APP/TASK/MY-TASK/19]", 19)
 			ParseTaskLog("[APP/TASK/bdfgr0d/0]", 0)
+			ParseTaskLog("[APP/TASK/[My-Task_1.6#'{\"label\":\"test\"}'/0/15]", 15)
 		})
 	})
 

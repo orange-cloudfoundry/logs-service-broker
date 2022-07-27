@@ -126,6 +126,7 @@ func (f *AppFilter) filterJson(message string) map[string]interface{} {
 }
 
 func (f *AppFilter) Match(pMes *rfc5424.SyslogMessage) bool {
-	r := regexp.MustCompile(`^\[APP/[A-Za-z]+/[0-9A-Za-z-]+(/SIDECAR/[0-9A-Za-z-]+)?/[0-9]+\]`)
+	//r := regexp.MustCompile(`^\[APP/[A-Za-z]+/[0-9A-Za-z-]+(/SIDECAR/[0-9A-Za-z-]+)?/[0-9]+\]`)
+	r := regexp.MustCompile(`^\[APP/[A-Za-z]+/.+]`)
 	return r.MatchString(*pMes.ProcID)
 }
