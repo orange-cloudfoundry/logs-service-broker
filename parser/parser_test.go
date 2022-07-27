@@ -127,7 +127,7 @@ var _ = Describe("Parser", func() {
 
 		It("returns expected @cf fields", func() {
 			ParseProcLog("[APP/PROC/WEB/0]", float64(0))
-			//ParseAppLog("[APP/PROC/WEB/19]", float64(19))
+			ParseProcLog("[APP/PROC/WEB/19]", float64(19))
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/TOMCAT/0]", 0)
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/TOMCAT/19]", 19)
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/CONFIG-SERVER/0]", 0)
