@@ -45,8 +45,7 @@ var _ = Describe("Parser", func() {
 
 	Context("Parse App Log", func() {
 
-		It("returns expected @cf fields", func() {
-
+		var ParseTaskLog = func(processID string, taskID float64) {
 			logMessage := buildLogEnvelope(
 				time.Now().UnixNano(),
 				app_id,
@@ -59,7 +58,7 @@ var _ = Describe("Parser", func() {
 			message, err := logMessage.Syslog(
 				loggregator_v2.WithSyslogAppName(app),
 				loggregator_v2.WithSyslogHostname(fmt.Sprintf("%s.%s.%s", org, space, app)),
-				loggregator_v2.WithSyslogProcessID("[APP/PROC/WEB/2]"),
+				loggregator_v2.WithSyslogProcessID(processID),
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(message)).ToNot(BeZero())
@@ -80,10 +79,66 @@ var _ = Describe("Parser", func() {
 			Expect(jsonLog["@cf"].(map[string]interface{})["org"]).To(Equal(org))
 			Expect(jsonLog["@cf"].(map[string]interface{})["space_id"]).To(Equal(space_id))
 			Expect(jsonLog["@cf"].(map[string]interface{})["space"]).To(Equal(space))
-			Expect(jsonLog["@cf"].(map[string]interface{})["app_instance"]).To(Equal(float64(2)))
+			Expect(jsonLog["@cf"].(map[string]interface{})["task_id"]).To(Equal(taskID))
 
 			Expect(jsonLog["@message"]).To(Equal(fmt.Sprintln(msg)))
 			Expect(jsonLog["@source"].(map[string]interface{})["type"]).To(Equal("APP"))
+		}
+
+		var ParseProcLog = func(processID string, instanceID float64) {
+			logMessage := buildLogEnvelope(
+				time.Now().UnixNano(),
+				app_id,
+				"1",
+				msg,
+				loggregator_v2.Log_OUT,
+				nil,
+			)
+
+			message, err := logMessage.Syslog(
+				loggregator_v2.WithSyslogAppName(app),
+				loggregator_v2.WithSyslogHostname(fmt.Sprintf("%s.%s.%s", org, space, app)),
+				loggregator_v2.WithSyslogProcessID(processID),
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(message)).ToNot(BeZero())
+			Expect(gParser).ToNot(BeNil())
+
+			var metadata = getMetadata(org_id, space_id, app_id)
+
+			parsed, err := gParser.Parse(metadata, message[0], programPatterns)
+			Expect(err).ToNot(HaveOccurred())
+			jsonLog := make(map[string]interface{})
+			Expect(err).ToNot(HaveOccurred())
+			err = json.Unmarshal([]byte(*parsed.Message), &jsonLog)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(jsonLog["@cf"].(map[string]interface{})["app_id"]).To(Equal(app_id))
+			Expect(jsonLog["@cf"].(map[string]interface{})["app"]).To(Equal(app))
+			Expect(jsonLog["@cf"].(map[string]interface{})["org_id"]).To(Equal(org_id))
+			Expect(jsonLog["@cf"].(map[string]interface{})["org"]).To(Equal(org))
+			Expect(jsonLog["@cf"].(map[string]interface{})["space_id"]).To(Equal(space_id))
+			Expect(jsonLog["@cf"].(map[string]interface{})["space"]).To(Equal(space))
+			Expect(jsonLog["@cf"].(map[string]interface{})["app_instance"]).To(Equal(instanceID))
+
+			Expect(jsonLog["@message"]).To(Equal(fmt.Sprintln(msg)))
+			Expect(jsonLog["@source"].(map[string]interface{})["type"]).To(Equal("APP"))
+		}
+
+		It("returns expected @cf fields", func() {
+			ParseProcLog("[APP/PROC/WEB/0]", float64(0))
+			ParseProcLog("[APP/PROC/WEB/19]", float64(19))
+			ParseProcLog("[APP/PROC/WEB/SIDECAR/TOMCAT/0]", 0)
+			ParseProcLog("[APP/PROC/WEB/SIDECAR/TOMCAT/19]", 19)
+			ParseProcLog("[APP/PROC/WEB/SIDECAR/CONFIG-SERVER/0]", 0)
+			ParseProcLog("[APP/PROC/WEB/SIDECAR/CONFIG-SERVER/19]", 19)
+			ParseProcLog("[APP/PROC/WEB/SIDECAR/[CONFIG-SERVER_1.6#'{\"label\":\"test\"}'/0/15]", 15)
+			ParseTaskLog("[APP/TASK/MYTASK/0]", float64(0))
+			ParseTaskLog("[APP/TASK/MYTASK/19]", float64(19))
+			ParseTaskLog("[APP/TASK/MY-TASK/0]", float64(0))
+			ParseTaskLog("[APP/TASK/MY-TASK/19]", 19)
+			ParseTaskLog("[APP/TASK/bdfgr0d/0]", 0)
+			ParseTaskLog("[APP/TASK/[My-Task_1.6#'{\"label\":\"test\"}'/0/15]", 15)
 		})
 	})
 

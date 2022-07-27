@@ -260,3 +260,7 @@ func parseInlineParams(inlineParams string) map[string]interface{} {
 	}
 	return finalParams
 }
+
+func (p *Parser) GetFilters() []Filter {
+	return p.filters
+}
