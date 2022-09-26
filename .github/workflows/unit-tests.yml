@@ -29,7 +29,3 @@ jobs:
         run: |
           go test -v ./...
 
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v1.6.0
-        with:
-          config-path: /github/workspace/.gitleaks.toml
