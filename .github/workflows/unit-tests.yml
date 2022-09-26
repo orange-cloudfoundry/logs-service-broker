@@ -30,6 +30,6 @@ jobs:
           go test -v ./...
 
       - name: gitleaks
-        uses: zricethezav/gitleaks-action@master
+        uses: gitleaks/gitleaks-action@v1.6.0
         with:
           config-path: /github/workspace/.gitleaks.toml
