@@ -45,7 +45,7 @@ var _ = Describe("Parser", func() {
 
 	Context("Parse App Log", func() {
 
-		var ParseTaskLog = func(processID string, taskID float64) {
+		var ParseTaskLog = func(processID string, taskID float64, taskName string) {
 			logMessage := buildLogEnvelope(
 				time.Now().UnixNano(),
 				app_id,
@@ -80,6 +80,7 @@ var _ = Describe("Parser", func() {
 			Expect(jsonLog["@cf"].(map[string]interface{})["space_id"]).To(Equal(space_id))
 			Expect(jsonLog["@cf"].(map[string]interface{})["space"]).To(Equal(space))
 			Expect(jsonLog["@cf"].(map[string]interface{})["task_id"]).To(Equal(taskID))
+			Expect(jsonLog["@cf"].(map[string]interface{})["task_name"]).To(Equal(taskName))
 
 			Expect(jsonLog["@message"]).To(Equal(fmt.Sprintln(msg)))
 			Expect(jsonLog["@source"].(map[string]interface{})["type"]).To(Equal("APP"))
@@ -133,12 +134,13 @@ var _ = Describe("Parser", func() {
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/CONFIG-SERVER/0]", 0)
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/CONFIG-SERVER/19]", 19)
 			ParseProcLog("[APP/PROC/WEB/SIDECAR/[CONFIG-SERVER_1.6#'{\"label\":\"test\"}'/0/15]", 15)
-			ParseTaskLog("[APP/TASK/MYTASK/0]", float64(0))
-			ParseTaskLog("[APP/TASK/MYTASK/19]", float64(19))
-			ParseTaskLog("[APP/TASK/MY-TASK/0]", float64(0))
-			ParseTaskLog("[APP/TASK/MY-TASK/19]", 19)
-			ParseTaskLog("[APP/TASK/bdfgr0d/0]", 0)
-			ParseTaskLog("[APP/TASK/[My-Task_1.6#'{\"label\":\"test\"}'/0/15]", 15)
+			ParseTaskLog("[APP/TASK/MYTASK/0]", float64(0), "MYTASK")
+			ParseTaskLog("[APP/TASK/MYTASK/19]", float64(19), "MYTASK")
+			ParseTaskLog("[APP/TASK/MY-TASK/0]", float64(0), "MY-TASK")
+			ParseTaskLog("[APP/TASK/MY-TASK/19]", 19, "MY-TASK")
+			ParseTaskLog("[APP/TASK/bdfgr0d/0]", 0, "bdfgr0d")
+			ParseTaskLog("[APP/TASK/[My-Task_1.6#'{\"label\":\"test\"}'/0/15]", 15, "[My-Task_1.6#'{\"label\":\"test\"}'")
+			ParseTaskLog("[APP/TASK/0pEMCNlVQE.0]", float64(0), "0pEMCNlVQE.0")
 		})
 	})
 
