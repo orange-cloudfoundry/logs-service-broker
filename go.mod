@@ -24,7 +24,7 @@ require (
 	github.com/onsi/gomega v1.24.0
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pivotal-cf/brokerapi v6.4.2+incompatible
-	github.com/prometheus/client_golang v1.13.1
+	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.37.0
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0
@@ -68,7 +68,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
