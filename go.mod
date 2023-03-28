@@ -1,6 +1,6 @@
 module github.com/orange-cloudfoundry/logs-service-broker
 
-go 1.19
+go 1.20
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
