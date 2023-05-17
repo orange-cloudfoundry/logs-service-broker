@@ -28,7 +28,7 @@ require (
 	github.com/prometheus/common v0.43.0
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.1
 	github.com/spf13/cast v1.5.1
 	golang.org/x/term v0.7.0 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
