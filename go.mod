@@ -18,7 +18,7 @@ require (
 	github.com/jinzhu/gorm v1.9.16
 	github.com/karrick/godirwalk v1.17.0 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.2
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
 	github.com/o1egl/gormrus v0.0.0-20190416211302-fde1f6a23457
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.27.10
@@ -30,7 +30,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.5.1
-	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/term v0.11.0 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
 )
 
@@ -76,12 +76,12 @@ require (
 	github.com/spf13/viper v1.16.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	golang.org/x/crypto v0.11.0 // indirect
-	golang.org/x/mod v0.11.0 // indirect
-	golang.org/x/net v0.12.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
-	golang.org/x/text v0.11.0 // indirect
-	golang.org/x/tools v0.9.3 // indirect
+	golang.org/x/crypto v0.12.0 // indirect
+	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/tools v0.12.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230629202037-9506855d4529 // indirect
 	google.golang.org/grpc v1.56.1 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
