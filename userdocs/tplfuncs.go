@@ -93,7 +93,7 @@ func parse(s, value interface{}) (template.HTML, error) {
 	buf := &bytes.Buffer{}
 	err := mainTpl.ExecuteTemplate(buf, fmt.Sprint(s), value)
 	if err != nil {
-		return template.HTML(""), err
+		return "", err
 	}
 	return template.HTML(buf.String()), nil
 }
