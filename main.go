@@ -278,8 +278,6 @@ func (a *app) listen(h http.Handler) {
 }
 
 func (a *app) startServer(h http.Handler, port int, certFile, keyFile *string) *http.Server {
-	rand.Seed(time.Now().UnixNano())
-
 	cnxCtxFn := func(ctx context.Context, c net.Conn) context.Context {
 		return ctx
 	}
