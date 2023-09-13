@@ -49,9 +49,15 @@ func (t *HttpWriter) Write(b []byte) (int, error) {
 func (t *HttpWriter) writeGzip(b []byte) error {
 	buf := &bytes.Buffer{}
 	gw := gzip.NewWriter(buf)
-	gw.Write(b)
-	gw.Flush()
-	gw.Close()
+	if _, err := gw.Write(b); err != nil {
+		return err
+	}
+	if err := gw.Flush(); err != nil {
+		return err
+	}
+	if err := gw.Close(); err != nil {
+		return err
+	}
 	return t.post("gzip", buf)
 }
 
