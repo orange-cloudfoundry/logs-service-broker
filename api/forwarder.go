@@ -5,7 +5,6 @@ import (
 	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
 	"github.com/orange-cloudfoundry/logs-service-broker/metrics"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"runtime/debug"
 	"strconv"
@@ -174,7 +173,7 @@ func (f Forwarder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	b, _ := ioutil.ReadAll(r.Body)
+	b, _ := io.ReadAll(r.Body)
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
