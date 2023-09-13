@@ -175,6 +175,6 @@ func (f RtrFilter) Filter(pMes *rfc5424.SyslogMessage) map[string]interface{} {
 }
 
 func (RtrFilter) Match(pMes *rfc5424.SyslogMessage) bool {
-	r := regexp.MustCompile(`^\[RTR/[0-9]+\]`)
+	r := regexp.MustCompile(`^\[RTR/[0-9]+]`)
 	return r.MatchString(*pMes.ProcID)
 }
