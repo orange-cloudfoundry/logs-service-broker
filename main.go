@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/cloudfoundry-community/gautocloud"
 	_ "github.com/cloudfoundry-community/gautocloud/connectors/databases/gorm"
 	"github.com/gobuffalo/packr/v2"
@@ -32,7 +33,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
 	log "github.com/sirupsen/logrus"
-	"github.com/alecthomas/kingpin/v2"	
 	"gopkg.in/gormigrate.v1"
 )
 
@@ -62,7 +62,7 @@ func newApp() *app {
 }
 
 // run -
-// 1. important to register as last handler cause it will capture `/(.*)` paths
+// 1. important to register as last handler because it will capture `/(.*)` paths
 func (a *app) run() {
 	a.initializeLogs()
 
@@ -267,19 +267,17 @@ func (a *app) listen(h http.Handler) {
 		cancel()
 	}()
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("server Shutdown Failed:%+s", err)
+		log.Fatalf("server Shutdown Failed:%s", err)
 	}
 	if serverTLS != nil {
 		if err := serverTLS.Shutdown(ctx); err != nil {
-			log.Fatalf("server Shutdown Failed:%+s", err)
+			log.Fatalf("server Shutdown Failed:%s", err)
 		}
 	}
 	log.Infof("server shutdown complete")
 }
 
 func (a *app) startServer(h http.Handler, port int, certFile, keyFile *string) *http.Server {
-	rand.Seed(time.Now().UnixNano())
-
 	cnxCtxFn := func(ctx context.Context, c net.Conn) context.Context {
 		return ctx
 	}
@@ -319,12 +317,11 @@ func (a *app) startServer(h http.Handler, port int, certFile, keyFile *string) *
 }
 
 // maxKeepAliveDecorator -
-// Enforce "Connection: close" header for connexions existing for more then
-// maxKeepAlive. Forcing client to reconnect and possibly to rebalance to other
+// Enforce "Connection: close" header for connections existing for more than
+// maxKeepAlive. Forcing client to reconnect and possibly to balance to other
 // nodes.
-// 1. disabled when maxKeepAlive is zero
 func (a *app) maxKeepAliveDecorator(h http.Handler) http.Handler {
-	// 1.
+	// disabled when maxKeepAlive is zero
 	if a.config.Web.MaxKeepAlive.Disabled {
 		return h
 	}

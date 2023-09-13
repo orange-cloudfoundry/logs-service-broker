@@ -21,7 +21,7 @@ services:
       web:
         # port for listening in http, default = 8088
         port: 8088
-        # auto close persistent connections configuration sub-section
+        # auto close persistant connections configuration sub-section
         max_keep_alive:
           # set true to disable max keep alive, default = false
           disabled: false
@@ -31,7 +31,7 @@ services:
           # -> life_span = duration + (rand(0..1) * fuzziness)
           fuzziness: 1m
 
-        # https server configuration sub-section
+        # https server configuration subsection
         tls:
           # port for listening in https, default = 8089
           port: 8089
@@ -44,7 +44,7 @@ services:
       broker:
         # [mandatory] host used to generate dashboard and documentation URLs
         public_host: logservice.public.domain
-        # [mandatory] host used to generate broked syslog drain URL
+        # [mandatory] host used to generate broker syslog drain URL
         drain_host: logservice.private.domain
         # [mandatory] broker username basic auth
         username: "username"
@@ -54,7 +54,7 @@ services:
         # default = false, allowing user to select between `logs`, `metrics` and `all` value
         force_empty_drain_type: true
 
-      # plans end forwading endpoint configuration section
+      # plans end forwarding endpoint configuration section
       # -> can define multiple service
       syslog_addresses:
         - # [mandatory] unique id of your service definition for this parser and forwarder
@@ -63,7 +63,7 @@ services:
           name: loghost
           # [mandatory] list of url to forward parsed data in rfc 5424 format with content encoded in json
           # -> available schemes:
-          #    - https, e.g.: https://my.http.server.com/receive (data will given in POST param)
+          #    - https, e.g.: https://my.http.server.com/receive (data will be given in POST param)
           #    - tcp, e.g.: tcp://my.syslog.server.com:514
           #    - udp, e.g.: udp://my.syslog.server.com:514
           #    - tcp with tls, e.g.: tcp+tls://my.syslog.server.com:514. This one accept get parameter for changing behaviour on certificate.
@@ -80,7 +80,7 @@ services:
           # description of your service definition for this parser and forwarder
           description: "Drain apps logs to loghost"
           # set default `drain_type` value for this service
-          # -> value might be overiden by user or forced to empty if `force_empty_drain_type` is set
+          # -> value might be overridden by user or forced to empty if `force_empty_drain_type` is set
           # -> available values:
           #    - `logs`: drain application log metrics messages
           #    - `metrics`: drain only metrics messages
@@ -107,7 +107,7 @@ services:
           source_labels:
             deployment: "production"
           # default list of tags sent as structured data to syslog endpoint
-          # -> values may use templating to generate dynamicvalues, see dedicated section for details
+          # -> values may use templating to generate dynamic values, see dedicated section for details
           tags:
             app: "{{ .App }}{{with ( ret .Logdata \"@app.tags\" ) }}/{{.}}{{end}}"
             env: "{{if hasSuffix .Org \"-staging\" }}dev{{ else }}prod{{ end }}"
@@ -115,9 +115,9 @@ services:
             fmt: json
             s: cloudfoundry
 
-      # forwader configuration section
+      # forwarder configuration section
       forwarder:
-        # list of allowed host, incomming requests for any other hosts will be rejected
+        # list of allowed host, incoming requests for any other hosts will be rejected
         # -> default = empty list, which means all hosts are allowed
         allowed_hosts:
           - logservice.private.domain
@@ -126,12 +126,12 @@ services:
           - hide: true
             name: app.audit_data.messages.last
 
-      # configuration section for local memory cache of binding informations
+      # configuration section for local memory cache of binding information
       binding_cache:
-        # time to keep binding informations in memory cache instead of quering it from database
-        # -> duration given in golang format like `3h` or `15m`
-        # -> because broked drain url embeds a revision number which increments whenever binding is updated
-        # -> we recommand to keep to default `always` value which keeps binding for a given revision
+        # time to keep binding information in the memory cache instead of querying it from database
+        # -> duration given in golang format, like `3h` or `15m`
+        # -> because broker drain url embeds a revision number which increments whenever binding is updated
+        # -> we recommend to keep to default `always` value which keeps binding for a given revision
         # -> forever in memory
         duration: always
         # if pre_cache set to true, all binding with latest revision will be preloaded in cacher at initialization

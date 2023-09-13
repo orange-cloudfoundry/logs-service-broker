@@ -15,7 +15,6 @@ func TestParser(t *testing.T) {
 	RunSpecs(t, "Parser Suite")
 }
 
-//
 func buildLogEnvelope(
 	time int64,
 	id string,

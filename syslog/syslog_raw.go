@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -108,7 +107,7 @@ func tlsConfigFromAddr(u *url.URL) (*tls.Config, error) {
 	if certPath == "" {
 		return tlsConf, nil
 	}
-	b, err := ioutil.ReadFile(certPath)
+	b, err := os.ReadFile(certPath)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +203,7 @@ func (w *Writer) Write(b []byte) (int, error) {
 	return w.writeAndRetry(string(b))
 }
 
-// Write sends a log message to the syslog daemon.
+// WriteString sends a log message to the syslog daemon.
 func (w *Writer) WriteString(mes string) (int, error) {
 	return w.writeAndRetry(mes)
 }

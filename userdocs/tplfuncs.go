@@ -3,6 +3,8 @@ package userdocs
 import (
 	"bytes"
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"html/template"
 	"reflect"
 	"strings"
@@ -67,7 +69,7 @@ func hasSuffix(s, suffix string) (bool, error) {
 }
 
 func title(s string) string {
-	return strings.Title(s)
+	return cases.Title(language.AmericanEnglish).String(s)
 }
 
 func safe(s interface{}) template.HTML {
@@ -93,7 +95,7 @@ func parse(s, value interface{}) (template.HTML, error) {
 	buf := &bytes.Buffer{}
 	err := mainTpl.ExecuteTemplate(buf, fmt.Sprint(s), value)
 	if err != nil {
-		return template.HTML(""), err
+		return "", err
 	}
 	return template.HTML(buf.String()), nil
 }
