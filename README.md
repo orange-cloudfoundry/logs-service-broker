@@ -1,22 +1,22 @@
 # logs-service-broker
 
 Logs-service-broker is a broker server for logs parsing (with custom parsing patterns given by user or operator) and
-forwarding to one or multiple syslog endpoint in rfc 5424 syslog format.
-Take care that logs-service-broker will always provide json encoded format to final syslogs endpoint(s).
+forwarding to one or multiple syslog endpoint in RFC 5424 syslog format.
+Take care that logs-service-broker will always provide json encoded format to final syslog endpoint(s).
 
-It is for now tied to cloud foundry for different types of logs received by this platform.
+It is for now tied to Cloud Foundry for different types of logs received by this platform.
 
 This is compliant with the spec [open service broker api](https://www.openservicebrokerapi.org/) for
 [syslog drain](https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#log-drain).
 
 ## How to deploy
 
-On cloud foundry service should **not** be deployed from this source code but it must use the boshrelease related to it
+On Cloud Foundry, a service should **not** be deployed from this source code, but it must use the boshrelease related to it
 which can be found here: https://github.com/orange-cloudfoundry/logservice-boshrelease/
 
 1. Clone the repo
 2. Go build the repo directly this will give you a logs-service-broker runnable server
-3. Create a `config.yml` file to set a your configuration. Configuration is explained in [configuration](#configuration) section
+3. Create a `config.yml` file to set your configuration. Configuration is explained in the [configuration section](#configuration)
 
 ## Configuration
 
@@ -48,7 +48,7 @@ You have access to this data:
 - `AppID`: App id in current log
 - `Logdata`: Final logs parsed as a `map[string]interface{}` (use `ret` function for easy exploring)
 
-In addition you can use those functions for helping you:
+In addition, you can use those functions for helping you:
 - `split <param> <delimiter>`: Split string by a delimiter to get a slice
 - `join <param> <delimiter>`: Make string from a slice collapse by delimiter
 - `trimSuffix <param> <suffix>`: Remove suffix from param
@@ -56,15 +56,15 @@ In addition you can use those functions for helping you:
 - `hasPrefix <param> <prefix>`: Check if prefix exists in param
 - `hasSuffix <param> <prefix>`: Check if suffix exists in param
 - `ret access.to.value.from.key`: Get the value of a key in a map by exploring it in dot format, e.g:
-this `{"foo": {"exists": ["my-value"]}` can be take by doing `ret "foo.exists.0"`
+  this `{"foo": {"exists": ["my-value"]}` can be done with `ret "foo.exists.0"`
 
 **tips**: on `ret` function you can use special key `first` and `last` on a slice for respectively the first value of a slice or the last one.
 
 ### forwarder.parsing_key
 
-Some of key/value pair have special effect, those pairs defined will be use as parsing value until there is nothing to parse anymore, we call them parsing keys.
+Some of the key/value pairs have special effect; those pairs defined will be used as parsing value until there is nothing to parse anymore, we call them parsing keys.
 
-By default parsing keys are:
+By default, parsing keys are:
 - `@message`
 - `@raw`
 - `text`
@@ -94,7 +94,7 @@ Example, you have the structure parsed as followed:
 }
 ```
 
-You define parsing key as follow:
+You can define a parsing key as follows:
 
 ```yaml
 parsing_keys:
@@ -125,7 +125,7 @@ The broker provide metrics in prometheus format on the endpoint: https://my-logs
 You can found dashboard for grafana here: https://github.com/orange-cloudfoundry/logservice-boshrelease/blob/master/jobs/logservice_dashboards/templates/logservice_overview.json
 And also alerts for it here: https://github.com/orange-cloudfoundry/logservice-boshrelease/blob/master/jobs/logservice_alerts/templates/logservice.alerts.yml
 
-## Architecture in a cloud foundry context
+## Architecture in a Cloud Foundry context
 
 [![archi](/docs/archi.png)](/docs/archi.png)
 

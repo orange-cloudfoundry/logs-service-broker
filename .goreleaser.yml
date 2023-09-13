@@ -1,9 +1,7 @@
 project_name: logs-service-broker
 
 builds:
-  -
-    &template
-    id: binary
+  - id: binary
     binary: logs-service-broker
     env:
       - CGO_ENABLED=0

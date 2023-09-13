@@ -142,7 +142,7 @@ func (c *MetaCacher) genKey(bindingID string, revision int) string {
 }
 
 // Cleaner -
-// clean expired cached to ensure to not use to much memory
+// clean expired cache to ensure to not use too much memory
 // This need to be called in a goroutine and do a kind of stop the world during cleaning sync map
 func (c *MetaCacher) Cleaner() {
 	sleepDuration := 24 * time.Hour

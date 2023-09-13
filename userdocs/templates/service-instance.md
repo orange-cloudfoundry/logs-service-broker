@@ -1,5 +1,5 @@
 You are using plan [{{ title .InstanceParam.SyslogName }}](#{{ slug .InstanceParam.SyslogName}}){{ with .InstanceParam.DrainType}} 
-and your are draining logs of type `{{ . }}`{{end}}{{ with .InstanceParam.UseTls }} with tls activated{{ end }}.
+and you are draining logs of type `{{ . }}`{{end}}{{ with .InstanceParam.UseTls }} with TLS activated{{ end }}.
 
 You have actually **{{ len .LogMetadatas }}** apps bound to this service.
 

@@ -204,7 +204,7 @@ func (w *Writer) Write(b []byte) (int, error) {
 	return w.writeAndRetry(string(b))
 }
 
-// Write sends a log message to the syslog daemon.
+// WriteString sends a log message to the syslog daemon.
 func (w *Writer) WriteString(mes string) (int, error) {
 	return w.writeAndRetry(mes)
 }

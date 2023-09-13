@@ -8,7 +8,7 @@
             this.materialize();
         },
 
-        //init materialize framewoek features
+        //init materialize framework features
         materialize: function () {
 
             $('.spy-toc').pushpin();

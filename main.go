@@ -62,7 +62,7 @@ func newApp() *app {
 }
 
 // run -
-// 1. important to register as last handler cause it will capture `/(.*)` paths
+// 1. important to register as last handler because it will capture `/(.*)` paths
 func (a *app) run() {
 	a.initializeLogs()
 
@@ -319,12 +319,11 @@ func (a *app) startServer(h http.Handler, port int, certFile, keyFile *string) *
 }
 
 // maxKeepAliveDecorator -
-// Enforce "Connection: close" header for connexions existing for more then
-// maxKeepAlive. Forcing client to reconnect and possibly to rebalance to other
+// Enforce "Connection: close" header for connections existing for more than
+// maxKeepAlive. Forcing client to reconnect and possibly to balance to other
 // nodes.
-// 1. disabled when maxKeepAlive is zero
 func (a *app) maxKeepAliveDecorator(h http.Handler) http.Handler {
-	// 1.
+	// disabled when maxKeepAlive is zero
 	if a.config.Web.MaxKeepAlive.Disabled {
 		return h
 	}
