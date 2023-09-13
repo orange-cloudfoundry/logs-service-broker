@@ -9,7 +9,7 @@ import (
 	"github.com/cloudfoundry-community/gautocloud"
 	"github.com/cloudfoundry-community/gautocloud/connectors/generic"
 	"github.com/jinzhu/gorm"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 )
 
 func init() {
@@ -135,8 +135,8 @@ type ParsingKey struct {
 
 type SyslogAddresses []SyslogAddress
 
-func (a SyslogAddresses) ToServicePlans() []brokerapi.ServicePlan {
-	sp := make([]brokerapi.ServicePlan, len(a))
+func (a SyslogAddresses) ToServicePlans() []domain.ServicePlan {
+	sp := make([]domain.ServicePlan, len(a))
 	for i, sa := range a {
 		sp[i] = sa.ToServicePlan()
 	}
@@ -165,12 +165,12 @@ type SyslogAddress struct {
 	SourceLabels     map[string]string `cloud:"source_labels"`
 }
 
-func (a SyslogAddress) ToServicePlan() brokerapi.ServicePlan {
-	return brokerapi.ServicePlan{
+func (a SyslogAddress) ToServicePlan() domain.ServicePlan {
+	return domain.ServicePlan{
 		ID:          a.ID,
 		Name:        a.Name,
 		Description: a.Description,
-		Metadata: &brokerapi.ServicePlanMetadata{
+		Metadata: &domain.ServicePlanMetadata{
 			Bullets:     a.Bullets,
 			DisplayName: a.Name,
 		},
