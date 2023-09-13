@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/cloudfoundry-community/gautocloud"
 	_ "github.com/cloudfoundry-community/gautocloud/connectors/databases/gorm"
 	"github.com/gobuffalo/packr/v2"
@@ -32,7 +33,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
 	log "github.com/sirupsen/logrus"
-	"github.com/alecthomas/kingpin/v2"	
 	"gopkg.in/gormigrate.v1"
 )
 
