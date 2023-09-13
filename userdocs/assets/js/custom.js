@@ -15,7 +15,7 @@
             $('.scrollspy').scrollSpy({
                 scrollOffset: 0,
                 getActiveElement: function (id) {
-                    if (id == "your-service-definition") {
+                    if (id === "your-service-definition") {
                         $('.spy-toc .table-of-contents a').addClass('sid');
                         return 'a[href="#' + id + '"]';
                     }

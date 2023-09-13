@@ -267,11 +267,11 @@ func (a *app) listen(h http.Handler) {
 		cancel()
 	}()
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("server Shutdown Failed:%+s", err)
+		log.Fatalf("server Shutdown Failed:%s", err)
 	}
 	if serverTLS != nil {
 		if err := serverTLS.Shutdown(ctx); err != nil {
-			log.Fatalf("server Shutdown Failed:%+s", err)
+			log.Fatalf("server Shutdown Failed:%s", err)
 		}
 	}
 	log.Infof("server shutdown complete")

@@ -127,7 +127,7 @@ func (f Forwarder) foundWriter(writerName string) (io.WriteCloser, error) {
 	return w, nil
 }
 
-func alwaysAuthorized(r *http.Request) bool {
+func alwaysAuthorized(_ *http.Request) bool {
 	return true
 }
 
