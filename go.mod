@@ -35,7 +35,7 @@ require (
 )
 
 require (
-	github.com/alecthomas/kingpin/v2 v2.3.2
+	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/cloudfoundry/go-loggregator v7.4.0+incompatible
 	golang.org/x/text v0.14.0
 )
