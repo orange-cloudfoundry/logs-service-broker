@@ -18,7 +18,7 @@ require (
 	github.com/jinzhu/gorm v1.9.16
 	github.com/karrick/godirwalk v1.17.0 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/o1egl/gormrus v0.0.0-20190416211302-fde1f6a23457
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.30.0
@@ -84,7 +84,7 @@ require (
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
-	golang.org/x/tools v0.16.0 // indirect
+	golang.org/x/tools v0.17.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
