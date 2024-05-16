@@ -157,6 +157,7 @@ func (s *Server) listenListener() {
 func (s *Server) handleRequest(conn net.Conn) {
 
 	defer conn.Close()
+	// nolint:errcheck
 	io.Copy(s.BufferResp, conn)
 }
 

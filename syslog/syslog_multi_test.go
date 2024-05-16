@@ -22,11 +22,13 @@ var _ = Describe("SyslogMulti", func() {
 
 	})
 	AfterEach(func() {
+		// nolint:errcheck
 		syslogClient.Close()
 		server1.Close()
 		server2.Close()
 	})
 	It("should pass to all servers the content", func() {
+		// nolint:errcheck
 		syslogClient.Write([]byte("my content"))
 
 		Eventually(server1.BufferResp.String).Should(Equal("my content"))

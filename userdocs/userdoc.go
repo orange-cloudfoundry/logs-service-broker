@@ -66,8 +66,10 @@ func (d UserDoc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}{*d.config, instanceParam, logMetadatas})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		// nolint:errcheck
 		w.Write([]byte(err.Error()))
 		return
 	}
+	// nolint:errcheck
 	w.Write(buf.Bytes())
 }
