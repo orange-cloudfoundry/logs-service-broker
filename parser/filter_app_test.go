@@ -57,7 +57,7 @@ var _ = Describe("Parser", func() {
 
 			message, err := logMessage.Syslog(
 				loggregator_v2.WithSyslogAppName(app),
-				loggregator_v2.WithSyslogHostname(fmt.Sprintf("#{org}.#{space}.#{app}")),
+				loggregator_v2.WithSyslogHostname("#{org}.#{space}.#{app}"),
 				loggregator_v2.WithSyslogProcessID(ProcessID),
 			)
 			Expect(err).ToNot(HaveOccurred())
