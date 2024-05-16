@@ -24,16 +24,9 @@
                 }
             });
             $(".button-collapse").sidenav();
-
-
-            //nice scroll plugin  init
-            $("html").niceScroll({
-                mousescrollstep: 50
-            });
             $('.dropdown-trigger').dropdown();
             $('.tabs').tabs();
             $('.materialboxed').materialbox();
-
         },
     }
 
