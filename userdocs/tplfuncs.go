@@ -87,8 +87,8 @@ func markdown(s interface{}) template.HTML {
 }
 
 func rawContent(s interface{}) (template.HTML, error) {
-	tplTxt, err := boxTemplates.FindString(fmt.Sprint(s))
-	return template.HTML(tplTxt), err
+	tplFile, err := embeddedUserDocTemplates.ReadFile(fmt.Sprint(s))
+	return template.HTML(tplFile), err
 }
 
 func parse(s, value interface{}) (template.HTML, error) {

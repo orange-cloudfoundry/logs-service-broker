@@ -113,7 +113,7 @@
                 <h1>Provisioned patterns</h1>
             </div>
             <div class="row">
-                {{ rawContent "patterns.md" | markdown }}
+                {{ parse "patterns.md" . | markdown }}
             </div>
         </div>
     </div>

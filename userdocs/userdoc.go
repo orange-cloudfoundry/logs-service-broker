@@ -2,11 +2,12 @@ package userdocs
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
 
-	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
@@ -17,22 +18,41 @@ type UserDoc struct {
 	config *model.Config
 }
 
-var boxTemplates = packr.New("userdocs_templates", "./templates")
+var (
+	// embeddedUserDocMain holds our main.html
+	//
+	//go:embed templates/main.html
+	embeddedUserDocMain string
+)
+
+// embeddedUserDocTemplates holds our Markdown files
+//
+//go:embed templates/*.md
+var embeddedUserDocTemplates embed.FS
+
 var mainTpl *template.Template
 
 func NewUserDoc(db *gorm.DB, config *model.Config) *UserDoc {
 	var err error
-	mainFile, _ := boxTemplates.FindString("main.html")
-	mainTpl, err = template.New("main.html").Funcs(tplfuncs).Parse(mainFile)
+	mainTpl, err = template.New("main.html").Funcs(tplfuncs).Parse(embeddedUserDocMain)
 	if err != nil {
 		panic(fmt.Sprintf("Cannot parse template 'main.html': %s", err.Error()))
 	}
-	for _, tplName := range boxTemplates.List() {
-		if tplName == "main.html" {
-			continue
+	templatesDirectory, err := fs.Sub(embeddedUserDocTemplates, "templates")
+	if err != nil {
+		panic("unable to sub embedded templates dir: " + err.Error())
+	}
+	content, err := fs.ReadDir(templatesDirectory, ".")
+	if err != nil {
+		panic("unable to read embedded templates dir: " + err.Error())
+	}
+	for _, file := range content {
+		tplName := file.Name()
+		tplFile, err := fs.ReadFile(templatesDirectory, tplName)
+		if err != nil {
+			panic(fmt.Sprintf("unable to read file '%s' from '%s': %s", tplName, templatesDirectory, err))
 		}
-		tplTxt, _ := boxTemplates.FindString(tplName)
-		_, err := mainTpl.New(tplName).Funcs(tplfuncs).Parse(tplTxt)
+		_, err = mainTpl.New(tplName).Funcs(tplfuncs).Parse(string(tplFile))
 		if err != nil {
 			panic(fmt.Sprintf("Cannot parse template '%s': %s", tplName, err.Error()))
 		}
