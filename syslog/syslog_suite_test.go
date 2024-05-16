@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -109,7 +108,7 @@ func NewServer(typeServer string) *Server {
 		server.typeListener = "tcp+tls"
 	default:
 		server.httpServer = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-			b, err := ioutil.ReadAll(request.Body)
+			b, err := io.ReadAll(request.Body)
 			if err != nil {
 				panic(err)
 			}
@@ -157,6 +156,7 @@ func (s *Server) listenListener() {
 func (s *Server) handleRequest(conn net.Conn) {
 
 	defer conn.Close()
+	// nolint:errcheck
 	io.Copy(s.BufferResp, conn)
 }
 

@@ -25,6 +25,7 @@ var _ = Describe("SyslogRaw", func() {
 			server.Close()
 		})
 		It("should pass to server the content", func() {
+			// nolint:errcheck
 			syslogClient.Write([]byte("my content"))
 			Eventually(server.BufferResp.String).Should(Equal("my content"))
 		})
@@ -41,10 +42,12 @@ var _ = Describe("SyslogRaw", func() {
 
 		})
 		AfterEach(func() {
+			// nolint:errcheck
 			syslogClient.Close()
 			server.Close()
 		})
 		It("should pass to server the content", func() {
+			// nolint:errcheck
 			syslogClient.Write([]byte("my content"))
 			Eventually(server.BufferResp.String).Should(Equal("my content"))
 		})
@@ -55,10 +58,12 @@ var _ = Describe("SyslogRaw", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				content := []byte("my content")
+				// nolint:errcheck
 				syslogClient.Write(content)
 
 				buf := &bytes.Buffer{}
 				gw := gzip.NewWriter(buf)
+				// nolint:errcheck
 				gw.Write(content)
 				gw.Flush()
 				gw.Close()
@@ -83,6 +88,7 @@ var _ = Describe("SyslogRaw", func() {
 			server.Close()
 		})
 		It("should pass to server the content", func() {
+			// nolint:errcheck
 			syslogClient.Write([]byte("my content"))
 			Eventually(server.BufferResp.String).Should(Equal("my content"))
 		})

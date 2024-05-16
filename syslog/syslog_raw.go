@@ -37,7 +37,7 @@ type netConn struct {
 
 func NewWriter(addresses ...string) (io.WriteCloser, error) {
 	if len(addresses) == 0 {
-		return nil, fmt.Errorf("One address must be given")
+		return nil, fmt.Errorf("one address must be given")
 	}
 
 	if len(addresses) > 1 {

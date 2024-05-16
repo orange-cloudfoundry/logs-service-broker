@@ -149,7 +149,7 @@ func (a SyslogAddresses) FoundSyslogWriter(planIDOrName string) (SyslogAddress, 
 			return addr, nil
 		}
 	}
-	return SyslogAddress{}, fmt.Errorf("Cannot found syslog writer for plan id or name '%s'.", planIDOrName)
+	return SyslogAddress{}, fmt.Errorf("cannot found syslog writer for plan id or name '%s'", planIDOrName)
 }
 
 type SyslogAddress struct {
@@ -310,7 +310,7 @@ func (dt *DrainType) UnmarshalJSON(b []byte) error {
 	case "all":
 		return nil
 	}
-	return fmt.Errorf("Only drain_type `metrics` or `logs` or `all` or empty value is allowed (which means only logs)")
+	return fmt.Errorf("only drain_type `metrics` or `logs` or `all` or empty value is allowed (which means only logs)")
 }
 
 type Patterns []Pattern

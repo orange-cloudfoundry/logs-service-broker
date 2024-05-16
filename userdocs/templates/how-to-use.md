@@ -11,7 +11,7 @@ $ cf create-service logs <plan> my-log-service -c '{"tags": {"my-tag": "bar"}, "
 ```
 
 **Note**:
-- you can found plan in [available plans section](#available-plans)
+- you can found plan in the [available plans section](#available-plans)
 - More about tags formatting in [tags formatting section](#tags-formatting)
 - More about patterns and grok available patterns in [patterns formatting section](#patterns-formatting)
 

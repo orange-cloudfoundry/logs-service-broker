@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"embed"
+	"errors"
 	"fmt"
 	"github.com/orange-cloudfoundry/logs-service-broker/api"
 	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
 	"github.com/orange-cloudfoundry/logs-service-broker/metrics"
 	"io"
+	"io/fs"
 	"math/rand"
 	"net"
 	"net/http"
@@ -21,7 +24,6 @@ import (
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/cloudfoundry-community/gautocloud"
 	_ "github.com/cloudfoundry-community/gautocloud/connectors/databases/gorm"
-	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -40,6 +42,11 @@ type writerMap = map[string]io.WriteCloser
 type app struct {
 	config *model.Config
 }
+
+// embeddedUserDocAssets holds our CSS/JS
+//
+//go:embed userdocs/assets
+var embeddedUserDocAssets embed.FS
 
 func main() {
 	kingpin.Version(version.Print("logs-service-broker"))
@@ -61,8 +68,7 @@ func newApp() *app {
 	}
 }
 
-// run -
-// 1. important to register as last handler because it will capture `/(.*)` paths
+// run - It is important to register it as the last handler because it will capture `/(.*)` paths
 func (a *app) run() {
 	a.initializeLogs()
 
@@ -91,7 +97,7 @@ func (a *app) run() {
 	a.registerDoc(router, db)
 	a.registerMetrics(router)
 	a.registerProfiler(router)
-	// 1.
+	// the catchall part
 	a.registerForwarder(router, writers, cacher)
 
 	a.listen(router)
@@ -309,7 +315,7 @@ func (a *app) startServer(h http.Handler, port int, certFile, keyFile *string) *
 			log.Infof("serving http on %s", addr)
 			err = server.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			panic(err)
 		}
 	}()
@@ -387,11 +393,16 @@ func (a *app) registerBroker(router *mux.Router, db *gorm.DB, cacher *dbservices
 }
 
 func (a *app) registerDoc(router *mux.Router, db *gorm.DB) {
-	userdoc := userdocs.NewUserDoc(db, a.config)
-	assets := packr.New("userdocs_assets", "./userdocs/assets")
-	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(assets)))
-	router.Handle("/docs", userdoc)
-	router.Handle("/docs/{instanceId}", userdoc)
+	userDocumentation := userdocs.NewUserDoc(db, a.config)
+	var staticFS = fs.FS(embeddedUserDocAssets)
+	assets, err := fs.Sub(staticFS, "userdocs/assets")
+	if err != nil {
+		log.Errorf("failed to load embedded static assets: %s", err)
+		return
+	}
+	router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.FS(assets))))
+	router.Handle("/docs", userDocumentation)
+	router.Handle("/docs/{instanceId}", userDocumentation)
 }
 
 // registerForwarder

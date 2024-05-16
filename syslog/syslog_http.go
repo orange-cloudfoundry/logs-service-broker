@@ -31,6 +31,7 @@ func HttpDial(addr string) (*HttpWriter, error) {
 			inGzip = true
 		}
 	}
+	// nolint:staticcheck
 	u.Query().Del(QueryInGzip)
 
 	return &HttpWriter{
