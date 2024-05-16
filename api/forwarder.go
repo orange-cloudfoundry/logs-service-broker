@@ -148,7 +148,9 @@ func (f Forwarder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if !f.authorizer(r) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
+		if _, err := w.Write([]byte(http.StatusText(http.StatusUnauthorized))); err != nil {
+			logrus.Errorf("failed to write response: %v", err)
+		}
 		return
 	}
 
