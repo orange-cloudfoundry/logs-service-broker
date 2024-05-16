@@ -9,16 +9,6 @@ import (
 const delimLastElem = "last"
 const delimFirstElem = "first"
 
-func Atoi(s string) int {
-	r, _ := strconv.Atoi(s)
-	return r
-}
-
-func ParseFloat(s string) float64 {
-	r, _ := strconv.ParseFloat(s, 64)
-	return r
-}
-
 func MergeMap(parent, partial map[string]interface{}) map[string]interface{} {
 	for k, v := range partial {
 		if _, ok := parent[k]; !ok {
