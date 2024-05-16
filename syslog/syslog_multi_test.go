@@ -1,9 +1,10 @@
 package syslog_test
 
 import (
+	"io"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"io"
 
 	"github.com/orange-cloudfoundry/logs-service-broker/syslog"
 )

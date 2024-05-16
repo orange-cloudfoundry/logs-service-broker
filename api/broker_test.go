@@ -209,7 +209,7 @@ var _ = Describe("Broker", func() {
 			)
 			// check if database is Ok before the deprovision
 			db.First(&inst, "instance_id = ?", serviceID)
-			Expect(inst).NotTo(Equal((model.InstanceParam{})))
+			Expect(inst).NotTo(Equal(model.InstanceParam{}))
 			inst = model.InstanceParam{}
 
 			details := brokerapi.DeprovisionDetails{
@@ -221,13 +221,13 @@ var _ = Describe("Broker", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			db.First(&inst, "instance_id = ?", serviceID)
-			Expect(inst).To(Equal((model.InstanceParam{})))
+			Expect(inst).To(Equal(model.InstanceParam{}))
 			db.First(&pattern, "instance_id = ?", serviceID)
-			Expect(pattern).To(Equal((model.Pattern{})))
+			Expect(pattern).To(Equal(model.Pattern{}))
 			db.First(&label, "instance_id = ?", serviceID)
-			Expect(label).To(Equal((model.Label{})))
+			Expect(label).To(Equal(model.Label{}))
 			db.First(&source, "instance_id = ?", serviceID)
-			Expect(source).To(Equal((model.SourceLabel{})))
+			Expect(source).To(Equal(model.SourceLabel{}))
 		})
 	})
 
@@ -326,7 +326,7 @@ var _ = Describe("Broker", func() {
 
 			// check if database is Ok before the deprovision
 			db.First(&metadata, "binding_id = ?", bindingID)
-			Expect(metadata).NotTo(Equal((model.LogMetadata{})))
+			Expect(metadata).NotTo(Equal(model.LogMetadata{}))
 			metadata = model.LogMetadata{}
 
 			details := brokerapi.UnbindDetails{
@@ -337,7 +337,7 @@ var _ = Describe("Broker", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			db.First(&metadata, "binding_id = ?", bindingID)
-			Expect(metadata).To(Equal((model.LogMetadata{})))
+			Expect(metadata).To(Equal(model.LogMetadata{}))
 		})
 	})
 
