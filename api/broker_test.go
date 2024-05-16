@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/gomega"
@@ -104,7 +104,7 @@ var _ = Describe("Broker", func() {
 
 	Context("Provision()", func() {
 		var serviceID = "ad45d7cc-4795-4554"
-		var specs brokerapi.ProvisionedServiceSpec
+		var specs domain.ProvisionedServiceSpec
 		var db *gorm.DB
 		var err error
 
@@ -120,7 +120,7 @@ var _ = Describe("Broker", func() {
 		When("all parameters are ok", func() {
 
 			BeforeEach(func() {
-				details := brokerapi.ProvisionDetails{
+				details := domain.ProvisionDetails{
 					ServiceID:     "11c147f0-297f-4fd6-9401-e94e64f37094",
 					PlanID:        planID,
 					RawContext:    []byte(`{"organization_guid": "1", "space_guid": "2", "service_guid": "11c147f0-297f-4fd6-9401-e94e64f37094", "plateform": "cloudfoundry"}`),
@@ -212,7 +212,7 @@ var _ = Describe("Broker", func() {
 			Expect(inst).NotTo(Equal(model.InstanceParam{}))
 			inst = model.InstanceParam{}
 
-			details := brokerapi.DeprovisionDetails{
+			details := domain.DeprovisionDetails{
 				ServiceID: "11c147f0-297f-4fd6-9401-e94e64f37094",
 				PlanID:    planID,
 				Force:     true,
@@ -234,7 +234,7 @@ var _ = Describe("Broker", func() {
 	Context("Bind()", func() {
 		var serviceID = "ad45d7cc-4795-4554"
 		var bindingID = "125ce4a5-7845-14ae"
-		var specs brokerapi.Binding
+		var specs domain.Binding
 		var db *gorm.DB
 		var err error
 
@@ -258,7 +258,7 @@ var _ = Describe("Broker", func() {
 					SyslogName: "loghost",
 				})
 				Expect(result.Error).To(BeNil())
-				details := brokerapi.BindDetails{
+				details := domain.BindDetails{
 					ServiceID:  "11c147f0-297f-4fd6-9401-e94e64f37094",
 					PlanID:     planID,
 					AppGUID:    "3",
@@ -329,7 +329,7 @@ var _ = Describe("Broker", func() {
 			Expect(metadata).NotTo(Equal(model.LogMetadata{}))
 			metadata = model.LogMetadata{}
 
-			details := brokerapi.UnbindDetails{
+			details := domain.UnbindDetails{
 				ServiceID: "11c147f0-297f-4fd6-9401-e94e64f37094",
 				PlanID:    planID,
 			}
@@ -344,7 +344,7 @@ var _ = Describe("Broker", func() {
 	Context("Update()", func() {
 		var serviceID = "ad45d7cc-4795-4554"
 		var bindingID = "125ce4a5-7845-14ae"
-		var specs brokerapi.UpdateServiceSpec
+		var specs domain.UpdateServiceSpec
 		var db *gorm.DB
 		var err error
 
@@ -391,7 +391,7 @@ var _ = Describe("Broker", func() {
 			})
 			Expect(result5.Error).To(BeNil())
 
-			details := brokerapi.UpdateDetails{
+			details := domain.UpdateDetails{
 				ServiceID:     "11c147f0-297f-4fd6-9401-e94e64f37094",
 				PlanID:        planID,
 				RawContext:    []byte(`{"organization_guid": "1", "space_guid": "2", "service_guid": "11c147f0-297f-4fd6-9401-e94e64f37094", "plateform": "cloudfoundry"}`),
