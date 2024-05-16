@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/orange-cloudfoundry/logs-service-broker/api"
 	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
@@ -309,7 +310,7 @@ func (a *app) startServer(h http.Handler, port int, certFile, keyFile *string) *
 			log.Infof("serving http on %s", addr)
 			err = server.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			panic(err)
 		}
 	}()
