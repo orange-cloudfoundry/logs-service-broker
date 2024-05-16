@@ -43,7 +43,7 @@ type RtrFilter struct {
 
 func (f RtrFilter) parse(message string) (map[string]interface{}, error) {
 	if !regexRtr.MatchString(message) {
-		return map[string]interface{}{}, fmt.Errorf("Log router could not be parsed, probably format has changed.")
+		return map[string]interface{}{}, fmt.Errorf("log router could not be parsed, probably format has changed")
 	}
 	match := regexRtr.FindStringSubmatch(message)
 	result := make(map[string]interface{})

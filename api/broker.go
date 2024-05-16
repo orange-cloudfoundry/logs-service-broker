@@ -77,12 +77,12 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 	var ctx model.ContextProvision
 	err = json.Unmarshal(details.RawContext, &ctx)
 	if err != nil {
-		return domain.ProvisionedServiceSpec{}, fmt.Errorf("Error when loading context: %s", err.Error())
+		return domain.ProvisionedServiceSpec{}, fmt.Errorf("error when loading context: %s", err.Error())
 	}
 	var params model.ProvisionParams
 	err = json.Unmarshal(details.RawParameters, &params)
 	if err != nil && len(details.RawParameters) > 0 {
-		return domain.ProvisionedServiceSpec{}, fmt.Errorf("Error when loading params: %s", err.Error())
+		return domain.ProvisionedServiceSpec{}, fmt.Errorf("error when loading params: %s", err.Error())
 	}
 
 	// copy to not modify parent map
@@ -180,7 +180,7 @@ func (b LoghostBroker) Bind(
 	var ctx model.ContextBind
 	err := json.Unmarshal(details.RawContext, &ctx)
 	if err != nil {
-		return domain.Binding{}, fmt.Errorf("Error when loading context: %s", err.Error())
+		return domain.Binding{}, fmt.Errorf("error when loading context: %s", err.Error())
 	}
 
 	err = b.db.Order("revision desc").First(&instanceParam, "instance_id = ?", instanceID).Error
@@ -281,12 +281,12 @@ func (b LoghostBroker) Update(
 	var ctx model.ContextProvision
 	err = json.Unmarshal(details.RawContext, &ctx)
 	if err != nil {
-		return domain.UpdateServiceSpec{}, fmt.Errorf("Error when loading context: %s", err.Error())
+		return domain.UpdateServiceSpec{}, fmt.Errorf("error when loading context: %s", err.Error())
 	}
 	var params model.ProvisionParams
 	err = json.Unmarshal(details.RawParameters, &params)
 	if err != nil && len(details.RawParameters) > 0 {
-		return domain.UpdateServiceSpec{}, fmt.Errorf("Error when loading params: %s", err.Error())
+		return domain.UpdateServiceSpec{}, fmt.Errorf("error when loading params: %s", err.Error())
 	}
 
 	// copy to not modify parent map

@@ -13,7 +13,7 @@ Your service is actually the {{ .InstanceParam.Revision }} revision.
 {{ end -}}
 
 {{- with .InstanceParam.Patterns }}
-### Your current patterns:
+### Your current pattern
 {{- range . }}
 - `{{ safe .Pattern }}`
 {{- end }}

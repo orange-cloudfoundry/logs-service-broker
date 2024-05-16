@@ -352,7 +352,7 @@ var _ = Describe("Broker", func() {
 			err = initBroker(&db, "update", &broker, &config)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			// create informations in database
+			// create information in database
 			result := db.Create(&model.InstanceParam{
 				InstanceID: serviceID,
 				Revision:   1,
