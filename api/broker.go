@@ -37,7 +37,7 @@ func NewLoghostBroker(
 	}
 }
 
-func (b LoghostBroker) Services(ctx context.Context) ([]domain.Service, error) {
+func (b LoghostBroker) Services(_ context.Context) ([]domain.Service, error) {
 	return []domain.Service{{
 		ID:          serviceId,
 		Name:        "logs",
@@ -68,7 +68,7 @@ func (b LoghostBroker) newDBError(phase string, err error) error {
 	return nerr
 }
 
-func (b LoghostBroker) Provision(_ context.Context, instanceID string, details domain.ProvisionDetails, asyncAllowed bool) (domain.ProvisionedServiceSpec, error) {
+func (b LoghostBroker) Provision(_ context.Context, instanceID string, details domain.ProvisionDetails, _ bool) (domain.ProvisionedServiceSpec, error) {
 	syslogAddr, err := model.SyslogAddresses(b.config.SyslogAddresses).FoundSyslogWriter(details.PlanID)
 	if err != nil {
 		return domain.ProvisionedServiceSpec{}, err
@@ -140,10 +140,10 @@ func (b LoghostBroker) Provision(_ context.Context, instanceID string, details d
 }
 
 func (b LoghostBroker) Deprovision(
-	ctx context.Context,
+	_ context.Context,
 	instanceID string,
-	details domain.DeprovisionDetails,
-	asyncAllowed bool,
+	_ domain.DeprovisionDetails,
+	_ bool,
 ) (domain.DeprovisionServiceSpec, error) {
 
 	err := b.db.Delete(&model.LogMetadata{
@@ -173,7 +173,7 @@ func (b LoghostBroker) Bind(
 	instanceID string,
 	bindingID string,
 	details domain.BindDetails,
-	asyncAllowed bool,
+	_ bool,
 ) (domain.Binding, error) {
 
 	var instanceParam model.InstanceParam
@@ -241,10 +241,10 @@ func (b LoghostBroker) genURL(instanceParam model.InstanceParam, bindingID strin
 
 func (b LoghostBroker) Unbind(
 	_ context.Context,
-	instanceID string,
+	_ string,
 	bindingID string,
-	details domain.UnbindDetails,
-	asyncAllowed bool,
+	_ domain.UnbindDetails,
+	_ bool,
 ) (domain.UnbindSpec, error) {
 
 	err := b.db.Delete(model.LogMetadata{}, "binding_id = ?", bindingID).Error
@@ -258,7 +258,7 @@ func (b LoghostBroker) Update(
 	_ context.Context,
 	instanceID string,
 	details domain.UpdateDetails,
-	asyncAllowed bool,
+	_ bool,
 ) (domain.UpdateServiceSpec, error) {
 
 	syslogAddr, err := model.SyslogAddresses(b.config.SyslogAddresses).FoundSyslogWriter(details.PlanID)
@@ -344,9 +344,9 @@ func (b LoghostBroker) Update(
 }
 
 func (LoghostBroker) LastOperation(
-	ctx context.Context,
-	instanceID string,
-	details domain.PollDetails,
+	_ context.Context,
+	_ string,
+	_ domain.PollDetails,
 ) (domain.LastOperation, error) {
 
 	return domain.LastOperation{}, nil
@@ -388,7 +388,7 @@ func (b LoghostBroker) GetInstance(
 
 func (b LoghostBroker) GetBinding(
 	_ context.Context,
-	instanceID string,
+	_ string,
 	bindingID string,
 ) (domain.GetBindingSpec, error) {
 
@@ -421,10 +421,10 @@ func (b LoghostBroker) GetBinding(
 }
 
 func (b LoghostBroker) LastBindingOperation(
-	ctx context.Context,
-	instanceID string,
-	bindingID string,
-	details domain.PollDetails,
+	_ context.Context,
+	_ string,
+	_ string,
+	_ domain.PollDetails,
 ) (domain.LastOperation, error) {
 
 	return domain.LastOperation{}, nil

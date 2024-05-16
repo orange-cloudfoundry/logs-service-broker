@@ -117,7 +117,7 @@ func GormMigration() []*Migration {
 	}
 }
 
-func migrateLabels(db *gorm.DB, config *model.Config) error {
+func migrateLabels(db *gorm.DB, _ *model.Config) error {
 	if !db.HasTable(&model.Label{}) || labelsMigrated {
 		return nil
 	}
