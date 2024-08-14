@@ -130,6 +130,15 @@ github.com/jinzhu/gorm/dialects/sqlite
 # github.com/jinzhu/inflection v1.0.0
 ## explicit
 github.com/jinzhu/inflection
+# github.com/klauspost/compress v1.17.9
+## explicit; go 1.20
+github.com/klauspost/compress
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/internal/cpuinfo
+github.com/klauspost/compress/internal/snapref
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/lib/pq v1.10.9
 ## explicit; go 1.13
 github.com/lib/pq
@@ -228,8 +237,10 @@ github.com/pivotal-cf/brokerapi/utils
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/prometheus/client_golang v1.19.1
+# github.com/prometheus/client_golang v1.20.0
 ## explicit; go 1.20
+github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil
+github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil/header
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
@@ -326,7 +337,7 @@ golang.org/x/net/trace
 # golang.org/x/sync v0.7.0
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.21.0
+# golang.org/x/sys v0.22.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
