@@ -1,10 +1,11 @@
 module github.com/orange-cloudfoundry/logs-service-broker
 
-go 1.22.3
+go 1.22.6
+
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/ArthurHlt/grok v1.0.4
-	github.com/alecthomas/units v0.0.0-20231202071711-9a357b53e9c9 // indirect
+	github.com/alecthomas/units v0.0.0-20240626203959-61d1e3462e30 // indirect
 	github.com/cloudfoundry-community/gautocloud v1.4.1
 	github.com/drewolson/testflight v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -79,8 +80,8 @@ require (
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291 // indirect
-	google.golang.org/grpc v1.64.1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240820151423-278611b39280 // indirect
+	google.golang.org/grpc v1.65.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
