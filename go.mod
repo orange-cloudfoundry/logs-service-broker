@@ -33,7 +33,7 @@ require (
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/cloudfoundry/go-loggregator v7.4.0+incompatible
-	golang.org/x/text v0.17.0
+	golang.org/x/text v0.18.0
 )
 
 require (
