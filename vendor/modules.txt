@@ -148,7 +148,7 @@ github.com/lib/pq/scram
 # github.com/magiconair/properties v1.8.7
 ## explicit; go 1.19
 github.com/magiconair/properties
-# github.com/mattn/go-sqlite3 v1.14.22
+# github.com/mattn/go-sqlite3 v1.14.23
 ## explicit; go 1.19
 github.com/mattn/go-sqlite3
 # github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
