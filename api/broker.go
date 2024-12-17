@@ -64,7 +64,7 @@ func (b LoghostBroker) Services(_ context.Context) ([]domain.Service, error) {
 
 func (b LoghostBroker) newDBError(phase string, err error) error {
 	nerr := fmt.Errorf("unexpected database error while %s: %s", phase, err.Error())
-	log.Errorf(nerr.Error())
+	log.Errorf("%s", err.Error())
 	return nerr
 }
 

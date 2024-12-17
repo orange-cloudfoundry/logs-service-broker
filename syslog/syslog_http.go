@@ -85,7 +85,7 @@ func (t *HttpWriter) post(contentEncoding string, r io.Reader) error {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		b, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf(string(b))
+		return fmt.Errorf("%s", string(b))
 	}
 
 	return nil
