@@ -26,7 +26,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cast v1.7.0
+	github.com/spf13/cast v1.7.1
 	gopkg.in/gormigrate.v1 v1.6.0
 )
 
