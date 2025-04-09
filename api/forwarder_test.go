@@ -81,7 +81,8 @@ var _ = Describe("Forwarder", func() {
 		// shutdown all servers
 		db.Exec("DELETE FROM log_metadata;")
 		db.Exec("DELETE FROM instance_params;")
-		db.Close()
+		err := db.Close()
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	Context("When a message is received", func() {

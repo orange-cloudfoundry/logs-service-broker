@@ -2,13 +2,15 @@ package api
 
 import (
 	"fmt"
-	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
-	"github.com/orange-cloudfoundry/logs-service-broker/metrics"
 	"io"
 	"net/http"
 	"runtime/debug"
 	"strconv"
 	"strings"
+
+	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
+	"github.com/orange-cloudfoundry/logs-service-broker/metrics"
+	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/orange-cloudfoundry/logs-service-broker/model"
@@ -144,7 +146,7 @@ func (f Forwarder) isAuthorized(r *http.Request) bool {
 }
 
 func (f Forwarder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	defer utils.CloseAndLogError(r.Body)
 
 	if !f.authorizer(r) {
 		w.WriteHeader(http.StatusUnauthorized)

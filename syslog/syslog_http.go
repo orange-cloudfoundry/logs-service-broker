@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 )
 
 const QueryInGzip = "in_gzip"
@@ -81,7 +83,7 @@ func (t *HttpWriter) post(contentEncoding string, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer utils.CloseAndLogError(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		b, _ := io.ReadAll(resp.Body)

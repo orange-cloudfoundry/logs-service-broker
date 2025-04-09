@@ -3,10 +3,11 @@ package syslog_test
 import (
 	"bytes"
 	"compress/gzip"
+	"io"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/orange-cloudfoundry/logs-service-broker/syslog"
-	"io"
 )
 
 var _ = Describe("SyslogRaw", func() {
@@ -21,7 +22,8 @@ var _ = Describe("SyslogRaw", func() {
 
 		})
 		AfterEach(func() {
-			syslogClient.Close()
+			err := syslogClient.Close()
+			Expect(err).ToNot(HaveOccurred())
 			server.Close()
 		})
 		It("should pass to server the content", func() {
@@ -65,8 +67,10 @@ var _ = Describe("SyslogRaw", func() {
 				gw := gzip.NewWriter(buf)
 				// nolint:errcheck
 				gw.Write(content)
-				gw.Flush()
-				gw.Close()
+				err = gw.Flush()
+				Expect(err).ToNot(HaveOccurred())
+				err = gw.Close()
+				Expect(err).ToNot(HaveOccurred())
 
 				Eventually(server.BufferResp.Bytes).Should(Equal(buf.Bytes()))
 			})
@@ -84,7 +88,8 @@ var _ = Describe("SyslogRaw", func() {
 
 		})
 		AfterEach(func() {
-			syslogClient.Close()
+			err := syslogClient.Close()
+			Expect(err).ToNot(HaveOccurred())
 			server.Close()
 		})
 		It("should pass to server the content", func() {

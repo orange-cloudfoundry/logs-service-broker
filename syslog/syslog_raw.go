@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/url"
 	"os"
@@ -145,7 +146,10 @@ func (w *Writer) connect() (err error) {
 	defer w.mu.Unlock()
 	if w.conn != nil {
 		// ignore err from close, it makes sense to continue anyway
-		w.conn.close()
+		err := w.conn.close()
+		if err != nil {
+			log.Printf("error closing connection: %v", err)
+		}
 		w.conn = nil
 	}
 
