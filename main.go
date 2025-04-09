@@ -5,9 +5,6 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"github.com/orange-cloudfoundry/logs-service-broker/api"
-	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
-	"github.com/orange-cloudfoundry/logs-service-broker/metrics"
 	"io"
 	"io/fs"
 	"math/rand"
@@ -19,6 +16,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/orange-cloudfoundry/logs-service-broker/api"
+	"github.com/orange-cloudfoundry/logs-service-broker/dbservices"
+	"github.com/orange-cloudfoundry/logs-service-broker/metrics"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/alecthomas/kingpin/v2"
@@ -106,10 +107,16 @@ func (a *app) run() {
 
 func (a *app) finish(db *gorm.DB, writers writerMap) {
 	if db != nil {
-		db.Close()
+		err := db.Close()
+		if err != nil {
+			log.Fatalf("failed to close database: %s", err.Error())
+		}
 	}
 	for _, w := range writers {
-		w.Close()
+		err := w.Close()
+		if err != nil {
+			log.Fatalf("failed to close syslog writer: %s", err.Error())
+		}
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/orange-cloudfoundry/logs-service-broker/utils"
 )
 
 var TLSPrivKey = `-----BEGIN PRIVATE KEY-----
@@ -155,7 +156,7 @@ func (s *Server) listenListener() {
 
 func (s *Server) handleRequest(conn net.Conn) {
 
-	defer conn.Close()
+	defer utils.CloseAndLogError(conn)
 	// nolint:errcheck
 	io.Copy(s.BufferResp, conn)
 }
@@ -166,6 +167,7 @@ func (s *Server) Close() {
 		s.httpServer.Close()
 	}
 	if s.listener != nil {
-		s.listener.Close()
+		err := s.listener.Close()
+		Expect(err).ToNot(HaveOccurred())
 	}
 }

@@ -86,7 +86,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			err := db.Close()
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("returns service description ", func() {
@@ -114,7 +115,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			err := db.Close()
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		When("all parameters are ok", func() {
@@ -197,7 +199,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			err := db.Close()
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("removes data from DB", func() {
@@ -244,7 +247,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			err := db.Close()
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		When("all parameters are ok", func() {
@@ -315,7 +319,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			err := db.Close()
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("removes data from DB", func() {
@@ -403,7 +408,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			err := db.Close()
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		When("all parameters are ok", func() {
@@ -459,7 +465,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			err := db.Close()
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("returns instance data from DB", func() {
@@ -497,7 +504,8 @@ var _ = Describe("Broker", func() {
 		})
 
 		AfterEach(func() {
-			db.Close()
+			err := db.Close()
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("returns instance data from DB", func() {

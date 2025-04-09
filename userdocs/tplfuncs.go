@@ -3,11 +3,12 @@ package userdocs
 import (
 	"bytes"
 	"fmt"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"html/template"
 	"reflect"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/russross/blackfriday/v2"
 )
@@ -39,8 +40,8 @@ func toUpper(a string) string {
 }
 
 func slug(a string) string {
-	a = strings.Replace(strings.ToLower(a), "_", "-", -1)
-	a = strings.Replace(a, " ", "-", -1)
+	a = strings.ReplaceAll(strings.ToLower(a), "_", "-")
+	a = strings.ReplaceAll(a, " ", "-")
 	return a
 }
 
