@@ -76,7 +76,7 @@ github.com/go-task/slim-sprig
 # github.com/go-viper/encoding/hcl v0.1.0
 ## explicit; go 1.21
 github.com/go-viper/encoding/hcl
-# github.com/go-viper/mapstructure/v2 v2.2.1
+# github.com/go-viper/mapstructure/v2 v2.3.0
 ## explicit; go 1.18
 github.com/go-viper/mapstructure/v2
 github.com/go-viper/mapstructure/v2/internal/errors
