@@ -66,11 +66,12 @@ func foundVarSlice(s []interface{}, delim string) interface{} {
 	delimSplit := strings.Split(delim, ".")
 	var v interface{}
 	start := strings.ToLower(delimSplit[0])
-	if start == delimLastElem {
+	switch start {
+	case delimLastElem:
 		v = s[len(s)-1]
-	} else if start == delimFirstElem {
+	case delimFirstElem:
 		v = s[0]
-	} else {
+	default:
 		i, _ := strconv.Atoi(start)
 		v = s[i]
 	}
