@@ -15,7 +15,7 @@ require (
 	github.com/influxdata/go-syslog/v3 v3.0.0
 	github.com/jinzhu/gorm v1.9.16
 	github.com/mattn/go-sqlite3 v1.14.32
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.3
 	github.com/o1egl/gormrus v0.0.0-20190416211302-fde1f6a23457
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.38.2
