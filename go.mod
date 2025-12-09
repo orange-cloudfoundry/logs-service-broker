@@ -33,7 +33,7 @@ require (
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/cloudfoundry/go-loggregator v7.4.0+incompatible
-	golang.org/x/text v0.31.0
+	golang.org/x/text v0.32.0
 )
 
 require (
@@ -76,7 +76,7 @@ require (
 	golang.org/x/crypto v0.44.0 // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
