@@ -1,0 +1,9 @@
+# Modules exempted from the archived-dependency gate.
+#
+# Every entry needs a reason and a condition for removing it again. This
+# list is not a way to silence the gate; it exists so the gate stays
+# meaningful for dependencies we can actually act on.
+#
+# Currently empty. gopkg.in/yaml.v3 was exempted here while gomega
+# required it; gomega v1.42.1 moved to the maintained go.yaml.in/yaml/v3
+# fork, which is the removal condition that entry recorded.

@@ -2,7 +2,6 @@ package syslog_test
 
 import (
 	"bytes"
-	"crypto/rand"
 	"crypto/tls"
 	"io"
 	"net"
@@ -100,7 +99,6 @@ func NewServer(typeServer string) *Server {
 			panic("server: loadkeys: " + err.Error())
 		}
 		config := tls.Config{Certificates: []tls.Certificate{cert}}
-		config.Rand = rand.Reader
 		l, err := tls.Listen("tcp", "127.0.0.1:0", &config)
 		if err != nil {
 			panic("server: listen: " + err.Error())
