@@ -22,3 +22,9 @@ _testmain.go
 *.exe
 vendor
 Godeps
+
+coverage.out
+coverage.html
+
+# make install-gitleaks and friends drop binaries here
+bin/
